@@ -10,75 +10,83 @@ jobs:
         os: [windows-latest, ubuntu-latest]
       fail-fast: false
 
-build-atomix:
-  needs: matrix
-  runs-on: ${{ matrix.os }}
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+  build-atomix:
+    needs: matrix
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Setup CMake
-      uses: actions/setup-cmake@v2
-      with:
-        cmake-versions: '3.30'
+      - name: Setup CMake
+        uses: cmake/setup-cmake@v3
+        with:
+          cmake-version: '3.30'
 
-    - name: Install dependencies
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential
+      - name: Install dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
 
-    - name: Install dependencies
-      if: runner.os == 'Windows'
-      run: |
-        choco install cmake --version=3.30
-        choco install visualstudio2022buildtools
+      - name: Install dependencies
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake --version=3.30
+          choco install visualstudio2022buildtools
 
-    - name: Configure and build atomix project
-      run: |
-        mkdir -p atomix/cmake-build-debug
-        cd atomix/cmake-build-debug
-        cmake ../../
-        cmake --build .
-        
-build-atomixc:
-  needs: matrix
-  runs-on: ${{ matrix.os }}
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Configure and build atomix project
+        run: |
+          mkdir -p atomix/cmake-build-debug
+          cd atomix
+          cmake -S . -B cmake-build-debug
+          cmake --build cmake-build-debug --config Debug
 
-    - name: Setup NodeJS
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '22'
+  build-atomixc:
+    runs-on: ${{ matrix.os }}
+    # Ensure that atomix build is done before this job starts
+    needs: build-atomix
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Install TypeScript
-      run: npm install -g typescript
+      - name: Setup NodeJS
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '22'
 
-    - name: Install dependencies
-      run: |
-        cd atomixc
-        npm install
+      - name: Install TypeScript
+        run: npm install -g typescript
 
-    - name: Build atomixc project
-      run: |
-        cd atomixc
-        tsc
+      - name: Install dependencies
+        run: |
+          cd atomixc
+          npm install
 
-run-tests:
-  needs: [build-atomix, build-atomixc]
-  runs-on: ${{ matrix.os }}
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Build atomixc project
+        run: |
+          cd atomixc
+          npx tsc
 
-    - name: Setup NodeJS
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '22'
+  run-tests:
+    runs-on: ${{ matrix.os }}
+    # Ensure that atomixc build is done before running tests
+    needs: build-atomixc
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Run tests
-    - run: |
-        cd tests
-        node ./suite.js
+      - name: Setup NodeJS
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Run tests
+      - run: |
+          cd tests
+          node ./suite.js
