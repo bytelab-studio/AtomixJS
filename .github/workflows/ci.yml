@@ -35,8 +35,8 @@ jobs:
         run: |
           mkdir -p atomix/cmake-build-debug
           cd atomix
-          cmake -S . -B cmake-build-debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-          cmake --build cmake-build-debug --config Debug
+          cmake -S . -B cmake-build-debug -DCMAKE_C_COMPILER=clang
+          cmake --build cmake-build-debug --config Debug --target atomix -j 14
 
       - name: Install TypeScript
         run: npm install -g typescript
