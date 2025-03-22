@@ -1,0 +1,51 @@
+#ifndef VALUE_H
+#define VALUE_H
+
+#include <stdint.h>
+
+#define JS_NaN 0.0 / 0.0
+
+#define JS_VALUE_INT(x) ((JSValue){.type = JS_INTEGER, .value.as_int = x})
+#define JS_VALUE_DOUBLE(x) ((JSValue){.type = JS_DOUBLE, .value.as_double = x})
+#define JS_VALUE_UNDEFINED ((JSValue){.type = JS_UNDEFINED, .value.as_int = 0})
+#define JS_VALUE_NULL ((JSValue){.type = JS_NULL, .value.as_int = 0})
+#define JS_VALUE_FUNCTION(func) ((JSValue){.type = JS_FUNC, .value.as_pointer = func})
+#define JS_VALUE_OBJECT(obj) ((JSValue){.type = JS_OBJECT, .value.as_pointer = obj})
+#define JS_VALUE_BOOL(state) ((JSValue){.type = JS_BOOLEAN, .value.as_int = state})
+
+typedef enum
+{
+    JS_INTEGER,
+    JS_DOUBLE,
+    JS_STRING,
+    JS_OBJECT,
+    JS_FUNC,
+    JS_UNDEFINED,
+    JS_NULL,
+    JS_BOOLEAN
+} JSValueType;
+
+typedef struct
+{
+    JSValueType type;
+
+    union
+    {
+        int32_t as_int;
+        double as_double;
+        void* as_pointer;
+    } value;
+} JSValue;
+
+
+int value_is_falsy(JSValue* value);
+
+static inline int value_is_truthy(JSValue* value)
+{
+    return !value_is_falsy(value);
+}
+
+int value_is_NaN(JSValue* value);
+
+
+#endif //VALUE_H

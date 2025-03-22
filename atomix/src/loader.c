@@ -1,0 +1,197 @@
+#include "loader.h"
+#include "panic.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "instruction.h"
+
+JSModule module_load_from_file(const char* filename)
+{
+    FILE* file = fopen(filename, "rb");
+    if (!file)
+    {
+        PANIC("Could not open file");
+    }
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* buffer = malloc(size);
+    if (!buffer)
+    {
+        PANIC("Could not allocate memory");
+    }
+    fread(buffer, size, 1, file);
+    fclose(file);
+
+    JSModule module = module_load_from_buffer(buffer);
+    free(buffer);
+    return module;
+}
+
+#define READ_Ux(buff, position, cast, increment) *((cast*)(buff + (position += increment) - increment))
+#define READ_U16(buff, position) READ_Ux(buff, position, uint16_t, 2)
+#define READ_U32(buff, position) READ_Ux(buff, position, uint32_t, 4)
+#define READ_I32(buff, position) READ_Ux(buff, position, int32_t, 4)
+#define READ_DOUBLE(buff, position) READ_Ux(buff, position, double, 8)
+
+StringTable load_string_table(const char* buff)
+{
+    size_t position = 0;
+    StringTable string_table;
+
+    string_table.length = READ_U32(buff, position);
+    string_table.count = READ_U32(buff, position);
+    string_table.offsets = malloc(string_table.count * sizeof(uint32_t));
+    if (!string_table.offsets)
+    {
+        PANIC("Could not allocate memory");
+    }
+    memcpy(string_table.offsets, buff + position, string_table.count * sizeof(uint32_t));
+    size_t str_buff_length = string_table.length - string_table.count * sizeof(uint32_t) - 2 * sizeof(uint32_t);
+    string_table.strings = malloc(str_buff_length);
+    memcpy(string_table.strings, buff + position + string_table.count * sizeof(uint32_t), str_buff_length);
+
+    return string_table;
+}
+
+void* load_instruction(const char* buff, size_t* start_position)
+{
+    size_t position = *start_position;
+    Opcode opcode = (Opcode)buff[position++];
+    void* inst;
+    switch (opcode)
+    {
+    default:
+    case OP_NOP:
+        inst = NULL;
+        break;
+    case OP_LD_INT:
+        {
+            InstInt32* x = malloc(sizeof(InstInt32));
+            x->opcode = opcode;
+            x->operand = READ_I32(buff, position);
+            inst = x;
+            break;
+        }
+    case OP_LD_DOUBLE:
+        {
+            InstDouble* x = malloc(sizeof(InstDouble));
+            x->opcode = opcode;
+            x->operand = READ_DOUBLE(buff, position);
+            inst = x;
+            break;
+        }
+    case OP_ADD:
+    case OP_MINUS:
+    case OP_POP:
+    case OP_DUP:
+    case OP_SWAP:
+    case OP_LD_UNDF:
+    case OP_LD_NULL:
+    case OP_LD_TRUE:
+    case OP_LD_FALSE:
+    case OP_OBJ_ALLOC:
+    case OP_RETURN:
+    case OP_PUSH_SCOPE:
+    case OP_POP_SCOPE:
+        {
+            Inst* x = malloc(sizeof(Inst));
+            x->opcode = opcode;
+            inst = x;
+            break;
+        }
+    case OP_ALLOC_LOCAL:
+    case OP_STORE_LOCAL:
+    case OP_LOAD_LOCAL:
+    case OP_LOAD_ARG:
+    case OP_FUNC_DECL_E:
+    case OP_CALL:
+    case OP_OBJ_STORE:
+    case OP_OBJ_LOAD:
+    case OP_JMP:
+    case OP_JMP_F:
+    case OP_JMP_T:
+        {
+            InstUInt16* x = malloc(sizeof(Inst));
+            x->opcode = opcode;
+            x->operand = READ_U16(buff, position);
+            inst = x;
+            break;
+        }
+    case OP_FUNC_DECL:
+        {
+            Inst2UInt16* x = malloc(sizeof(Inst2UInt16));
+            x->opcode = opcode;
+            x->operand = READ_U16(buff, position);
+            x->operand2 = READ_U16(buff, position);
+            inst = x;
+            break;
+        }
+    }
+
+    *start_position = position;
+    return inst;
+}
+
+DataSection load_data_section(const char* buff)
+{
+    size_t position = 0;
+    DataSection data_section;
+
+    data_section.length = READ_U32(buff, position);
+    data_section.count = READ_U32(buff, position);
+    data_section.instructions = malloc(data_section.count * sizeof(void*));
+    for (size_t i = 0; i < data_section.count; i++)
+    {
+        data_section.instructions[i] = load_instruction(buff, &position);
+    }
+
+    return data_section;
+}
+
+JSModule module_load_from_buffer(char* buff)
+{
+    JSModule module;
+    size_t position = 0;
+    module.header.magic[0] = buff[position++];
+    module.header.magic[1] = buff[position++];
+    module.header.magic[2] = buff[position++];
+
+
+    if (module.header.magic[0] != MAGIC0 ||
+        module.header.magic[1] != MAGIC1 ||
+        module.header.magic[2] != MAGIC2)
+    {
+        PANIC("Invalid magic number");
+    }
+
+    module.header.version = READ_U16(buff, position);
+    if (module.header.version != VERSION)
+    {
+        PANIC("Invalid VM Version");
+    }
+
+    module.header.string_table = READ_U32(buff, position);
+    module.header.data_section = READ_U32(buff, position);
+
+    module.string_table = load_string_table(buff + module.header.string_table);
+    module.data_section = load_data_section(buff + module.header.data_section);
+    return module;
+}
+
+void module_free(const JSModule module)
+{
+    free(module.string_table.offsets);
+    free(module.string_table.strings);
+    for (size_t i = 0; i < module.data_section.count; i++)
+    {
+        if (module.data_section.instructions[i] != NULL)
+        {
+            free(module.data_section.instructions[i]);
+        }
+    }
+    free(module.data_section.instructions);
+}

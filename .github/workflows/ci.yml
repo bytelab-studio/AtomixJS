@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: *
+  pull_request:
+    branches: *
+
+jobs:
+  matrix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+      fail-fast: false
+
+build-atomix:
+  needs: matrix
+  runs-on: ${{ matrix.os }}
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup CMake
+      uses: actions/setup-cmake@v2
+      with:
+        cmake-versions: '3.30'
+
+    - name: Install dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
+    - name: Install dependencies
+      if: runner.os == 'Windows'
+      run: |
+        choco install cmake --version=3.30
+        choco install visualstudio2022buildtools
+
+    - name: Configure and build atomix project
+      run: |
+        mkdir -p atomix/cmake-build-debug
+        cd atomix/cmake-build-debug
+        cmake ../../
+        cmake --build .
+        
+build-atomixc:
+  needs: matrix
+  runs-on: ${{ matrix.os }}
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup NodeJS
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Install TypeScript
+      run: npm install -g typescript
+
+    - name: Install dependencies
+      run: |
+        cd atomixc
+        npm install
+
+    - name: Build atomixc project
+      run: |
+        cd atomixc
+        tsc
+
+run-tests:
+  needs: [build-atomix, build-atomixc]
+  runs-on: ${{ matrix.os }}
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup NodeJS
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Run tests
+    - run: |
+        cd tests
+        node ./suite.js
