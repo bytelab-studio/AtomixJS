@@ -3,15 +3,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  matrix:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest]
-      fail-fast: false
-
   build-atomix:
-    needs: matrix
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
