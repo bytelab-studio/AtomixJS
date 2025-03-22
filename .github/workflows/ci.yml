@@ -15,40 +15,28 @@ jobs:
       - name: Setup CMake
         uses: lukka/get-cmake@latest
 
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake
+          sudo apt-get install -y build-essential clang
 
       - name: Install dependencies
         if: runner.os == 'Windows'
         run: |
-          choco install cmake --version=3.30
-          choco install visualstudio2022buildtools
+          choco install llvm
 
       - name: Configure and build atomix project
         run: |
           mkdir -p atomix/cmake-build-debug
           cd atomix
-          cmake -S . -B cmake-build-debug
+          cmake -S . -B cmake-build-debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           cmake --build cmake-build-debug --config Debug
-
-  build-atomixc:
-    runs-on: ${{ matrix.os }}
-    # Ensure that atomix build is done before this job starts
-    needs: build-atomix
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup NodeJS
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
 
       - name: Install TypeScript
         run: npm install -g typescript
@@ -62,22 +50,6 @@ jobs:
         run: |
           cd atomixc
           npx tsc
-
-  run-tests:
-    runs-on: ${{ matrix.os }}
-    # Ensure that atomixc build is done before running tests
-    needs: build-atomixc
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup NodeJS
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
 
       - name: Run tests
         run: |
