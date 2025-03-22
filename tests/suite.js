@@ -81,7 +81,11 @@ for (const test of pipeFiles(path.join(__dirname, "src"))) {
     executed++;
     if (assert != testContent) {
         failed++;
-        console.log(" - Fail");
+        console.log(" - Fail:");
+        console.log("Expected:")
+        console.log(assert);
+        console.log("Retrieved:")
+        console.log(testContent);
     } else {
         console.log(" - OK");
     }
