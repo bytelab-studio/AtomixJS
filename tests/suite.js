@@ -26,9 +26,15 @@ function* pipeFiles(dir) {
 function compileProgram(test) {
     process.stdout.write(` - Compile program: ${test}: `);
     const outputFile = test + ".bin";
-    child_process.spawnSync("node", [COMPILER, test, outputFile]);
+    const buildResult = child_process.spawnSync("node", [COMPILER, test, outputFile]);
 
-    console.log("Done");
+    if (buildResult.status != 0) {
+        console.log("Fail");
+        console.log(buildResult.stderr);
+    } else {
+        console.log("Done");
+    }
+
     return outputFile;
 }
 
@@ -37,7 +43,12 @@ function runProgram(file) {
     const testResult = child_process.spawnSync(VM_RUNNER, [file], {
         encoding: "utf-8"
     });
-    console.log("Done");
+    if (testResult.status != 0) {
+        console.log("Fail");
+        console.log(testResult.stderr);
+    } else {
+        console.log("Done");
+    }
     return testResult.stdout;
 }
 
@@ -55,7 +66,12 @@ for (const test of pipeFiles(path.join(__dirname, "src"))) {
         });
         fs.writeFileSync(snapshotFile, subProcess.stdout);
         assert = subProcess.stdout;
-        console.log("Done");
+        if (subProcess.status != 0) {
+            console.log("Fail");
+            console.log(subProcess.stderr);
+        } else {
+            console.log("Done");
+        }
     } else {
         assert = fs.readFileSync(snapshotFile, "utf-8");
     }
