@@ -54,4 +54,3 @@ if (process.argv.length < 2) {
 }
 
 require(process.argv[2]);
-const os = require("node:os");
