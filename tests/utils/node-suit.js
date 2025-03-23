@@ -1,10 +1,6 @@
 const os = require("os");
 // This file is to create mokup functions of the AtomixJS runtime functions.
 
-const lineBreak = os.platform() == "win32"
-    ? "\r\n"
-    : "\n";
-
 globalThis.print = function (...args) {
     for (const arg of args) {
         switch (typeof arg) {
@@ -14,36 +10,30 @@ globalThis.print = function (...args) {
                     ? _
                     : _.padEnd(_.indexOf(".") + 7, "0");
                 process.stdout.write(_);
-                process.stdout.write(lineBreak);
+                process.stdout.write("\n");
                 break;
             case "string":
                 process.stdout.write(arg.padEnd(arg.indexOf(".") + 7, "0"));
-                process.stdout.write(lineBreak);
+                process.stdout.write("\n");
                 break;
             case "object":
                 if (arg == null) {
-                    process.stdout.write("null");
-                    process.stdout.write(lineBreak);
+                    process.stdout.write("null\n");
                     break;
                 }
-                process.stdout.write("[Object]");
-                process.stdout.write(lineBreak);
+                process.stdout.write("[Object]\n");
                 break;
             case "function":
-                process.stdout.write("[Function]");
-                process.stdout.write(lineBreak);
+                process.stdout.write("[Function]\n");
                 break;
             case "undefined":
-                process.stdout.write("undefined");
-                process.stdout.write(lineBreak);
+                process.stdout.write("undefined\n");
                 break;
             case "boolean":
                 if (arg) {
-                    process.stdout.write("true");
-                    process.stdout.write(lineBreak);
+                    process.stdout.write("true\n");
                 } else {
-                    process.stdout.write("false");
-                    process.stdout.write(lineBreak);
+                    process.stdout.write("false\n");
                 }
                 break;
         }

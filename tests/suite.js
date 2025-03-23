@@ -49,7 +49,7 @@ function runProgram(file) {
     } else {
         console.log("Done");
     }
-    return testResult.stdout;
+    return testResult.stdout.replace(/\r\n/g, "\n");
 }
 
 let executed = 0;
@@ -65,7 +65,7 @@ for (const test of pipeFiles(path.join(__dirname, "src"))) {
             encoding: "utf-8"
         });
         fs.writeFileSync(snapshotFile, subProcess.stdout);
-        assert = subProcess.stdout;
+        assert = subProcess.stdout.replace(/\r\n/g, "\n");
         if (subProcess.status != 0) {
             console.log("Fail");
             console.log(subProcess.stderr);
@@ -73,7 +73,7 @@ for (const test of pipeFiles(path.join(__dirname, "src"))) {
             console.log("Done");
         }
     } else {
-        assert = fs.readFileSync(snapshotFile, "utf-8");
+        assert = fs.readFileSync(snapshotFile, "utf-8").replace(/\r\n/g, "\n");
     }
 
     const program = compileProgram(test);
