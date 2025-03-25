@@ -9,7 +9,7 @@ void print_data(void** instructions, size_t count)
 {
     for (size_t i = 0; i < count; i++)
     {
-        printf("%llu: %i\n", i, OPCODE_OF(instructions[i]));
+        printf("%zu: %i\n", i, OPCODE_OF(instructions[i]));
     }
 }
 
