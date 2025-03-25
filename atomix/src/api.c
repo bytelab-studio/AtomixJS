@@ -1,7 +1,3 @@
-//
-// Created by kosch on 14.03.2025.
-//
-
 #include "api.h"
 
 extern module_init __start_mod_init;
