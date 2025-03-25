@@ -36,6 +36,18 @@ void inst_ld_double(VM* vm, void* ptr)
     });
 }
 
+void inst_ld_string(VM* vm, void* ptr)
+{
+    InstUInt16* inst = ptr;
+    if (vm->stats.stack_counter >= STACK_SIZE)
+    {
+        PANIC("Stack overflow");
+    }
+
+    char* str = string_table_load_str(&vm->module.string_table, inst->operand);
+    vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_STRING(str);
+}
+
 void inst_ld_undf(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
@@ -422,6 +434,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_NOP] = inst_nop;
     vm.inst_set[OP_LD_INT] = inst_ld_int;
     vm.inst_set[OP_LD_DOUBLE] = inst_ld_double;
+    vm.inst_set[OP_LD_STRING] = inst_ld_string;
     vm.inst_set[OP_LD_UNDF] = inst_ld_undf;
     vm.inst_set[OP_LD_NULL] = inst_ld_null;
     vm.inst_set[OP_LD_TRUE] = inst_ld_boolean;

@@ -103,6 +103,7 @@ void* load_instruction(const char* buff, size_t* start_position)
             inst = x;
             break;
         }
+    case OP_LD_STRING:
     case OP_ALLOC_LOCAL:
     case OP_STORE_LOCAL:
     case OP_LOAD_LOCAL:

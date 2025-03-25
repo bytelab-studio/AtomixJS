@@ -37,6 +37,10 @@ pipe["Literal"] = (node: acorn.Literal, ctx: PipeContext) => {
     }
 
     switch (typeof node.value) {
+        case "string":
+            const idx = ctx.stringTable.registerString(node.value);
+            ctx.data.addInstruction(new Instruction(Opcodes.LD_STRING).addOperand(new ConstantUNumberOperand(idx, "short")));
+            break;
         case "number":
             if (node.value % 1 == 0) {
                 ctx.data.addInstruction(new Instruction(Opcodes.LD_INT).addOperand(new ConstantIntegerOperand(node.value)));

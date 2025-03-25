@@ -7,6 +7,7 @@
 
 #define JS_VALUE_INT(x) ((JSValue){.type = JS_INTEGER, .value.as_int = x})
 #define JS_VALUE_DOUBLE(x) ((JSValue){.type = JS_DOUBLE, .value.as_double = x})
+#define JS_VALUE_STRING(x) ((JSValue){.type = JS_STRING, .value.as_pointer = x})
 #define JS_VALUE_UNDEFINED ((JSValue){.type = JS_UNDEFINED, .value.as_int = 0})
 #define JS_VALUE_NULL ((JSValue){.type = JS_NULL, .value.as_int = 0})
 #define JS_VALUE_FUNCTION(func) ((JSValue){.type = JS_FUNC, .value.as_pointer = func})

@@ -4,6 +4,7 @@ export enum Opcodes {
     NOP,
     LD_INT,
     LD_DOUBLE,
+    LD_STRING,
     LD_UNDF,
     LD_NULL,
     LD_TRUE,
