@@ -12,4 +12,6 @@ JSModule module_load_from_file(const char* filename);
 
 JSModule module_load_from_buffer(char* buff);
 
+void module_free(JSModule module);
+
 #endif //LOADER_H

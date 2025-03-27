@@ -1,12 +1,11 @@
 #include "scope.h"
-
-#include <stdlib.h>
+#include "allocator.h"
 
 #define SCOPE_BUCKET_SIZE 32
 
 Scope* scope_create_scope(Scope* parent)
 {
-    Scope* scope = malloc(sizeof(Scope));
+    Scope* scope = js_malloc(sizeof(Scope));
     scope->parent = parent;
     scope->symbols = dict_create_dict(SCOPE_BUCKET_SIZE);
     return scope;
@@ -69,5 +68,5 @@ int scope_delete(const Scope* scope, char* key)
 void scope_free(Scope* scope)
 {
     dict_free(scope->symbols);
-    free(scope);
+    js_free(scope);
 }

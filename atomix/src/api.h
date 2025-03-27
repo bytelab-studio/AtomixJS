@@ -12,4 +12,6 @@ typedef void (*module_init)(Scope*);
 
 void bind_modules(Scope* scope);
 
+char* init_string(char* str);
+
 #endif //API_H

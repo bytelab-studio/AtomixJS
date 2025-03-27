@@ -26,4 +26,6 @@ add_executable(atomix main.c
         src/api.h
         src/mod/core.c
         src/value.c
+        src/allocator.c
+        src/allocator.h
 )

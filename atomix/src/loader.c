@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "allocator.h"
 #include "instruction.h"
 
 JSModule module_load_from_file(const char* filename)
@@ -18,7 +19,7 @@ JSModule module_load_from_file(const char* filename)
     size_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    char* buffer = malloc(size);
+    char* buffer = js_malloc(size);
     if (!buffer)
     {
         PANIC("Could not allocate memory");
@@ -27,7 +28,7 @@ JSModule module_load_from_file(const char* filename)
     fclose(file);
 
     JSModule module = module_load_from_buffer(buffer);
-    free(buffer);
+    js_free(buffer);
     return module;
 }
 
@@ -44,14 +45,14 @@ StringTable load_string_table(const char* buff)
 
     string_table.length = READ_U32(buff, position);
     string_table.count = READ_U32(buff, position);
-    string_table.offsets = malloc(string_table.count * sizeof(uint32_t));
+    string_table.offsets = js_malloc(string_table.count * sizeof(uint32_t));
     if (!string_table.offsets)
     {
         PANIC("Could not allocate memory");
     }
     memcpy(string_table.offsets, buff + position, string_table.count * sizeof(uint32_t));
     size_t str_buff_length = string_table.length - string_table.count * sizeof(uint32_t) - 2 * sizeof(uint32_t);
-    string_table.strings = malloc(str_buff_length);
+    string_table.strings = js_malloc(str_buff_length);
     memcpy(string_table.strings, buff + position + string_table.count * sizeof(uint32_t), str_buff_length);
 
     return string_table;
@@ -70,7 +71,7 @@ void* load_instruction(const char* buff, size_t* start_position)
         break;
     case OP_LD_INT:
         {
-            InstInt32* x = malloc(sizeof(InstInt32));
+            InstInt32* x = js_malloc(sizeof(InstInt32));
             x->opcode = opcode;
             x->operand = READ_I32(buff, position);
             inst = x;
@@ -78,7 +79,7 @@ void* load_instruction(const char* buff, size_t* start_position)
         }
     case OP_LD_DOUBLE:
         {
-            InstDouble* x = malloc(sizeof(InstDouble));
+            InstDouble* x = js_malloc(sizeof(InstDouble));
             x->opcode = opcode;
             x->operand = READ_DOUBLE(buff, position);
             inst = x;
@@ -98,7 +99,7 @@ void* load_instruction(const char* buff, size_t* start_position)
     case OP_PUSH_SCOPE:
     case OP_POP_SCOPE:
         {
-            Inst* x = malloc(sizeof(Inst));
+            Inst* x = js_malloc(sizeof(Inst));
             x->opcode = opcode;
             inst = x;
             break;
@@ -116,7 +117,7 @@ void* load_instruction(const char* buff, size_t* start_position)
     case OP_JMP_F:
     case OP_JMP_T:
         {
-            InstUInt16* x = malloc(sizeof(Inst));
+            InstUInt16* x = js_malloc(sizeof(InstUInt16));
             x->opcode = opcode;
             x->operand = READ_U16(buff, position);
             inst = x;
@@ -124,7 +125,7 @@ void* load_instruction(const char* buff, size_t* start_position)
         }
     case OP_FUNC_DECL:
         {
-            Inst2UInt16* x = malloc(sizeof(Inst2UInt16));
+            Inst2UInt16* x = js_malloc(sizeof(Inst2UInt16));
             x->opcode = opcode;
             x->operand = READ_U16(buff, position);
             x->operand2 = READ_U16(buff, position);
@@ -144,7 +145,7 @@ DataSection load_data_section(const char* buff)
 
     data_section.length = READ_U32(buff, position);
     data_section.count = READ_U32(buff, position);
-    data_section.instructions = malloc(data_section.count * sizeof(void*));
+    data_section.instructions = js_malloc(data_section.count * sizeof(void*));
     for (size_t i = 0; i < data_section.count; i++)
     {
         data_section.instructions[i] = load_instruction(buff, &position);
@@ -183,16 +184,16 @@ JSModule module_load_from_buffer(char* buff)
     return module;
 }
 
-void module_free(const JSModule module)
+void module_free(JSModule module)
 {
-    free(module.string_table.offsets);
-    free(module.string_table.strings);
+    js_free(module.string_table.offsets);
+    js_free(module.string_table.strings);
     for (size_t i = 0; i < module.data_section.count; i++)
     {
         if (module.data_section.instructions[i] != NULL)
         {
-            free(module.data_section.instructions[i]);
+            js_free(module.data_section.instructions[i]);
         }
     }
-    free(module.data_section.instructions);
+    js_free(module.data_section.instructions);
 }

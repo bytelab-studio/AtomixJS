@@ -53,7 +53,7 @@ JSValue print(JSValue* args, size_t argc)
 void core_init(Scope* scope)
 {
     JSFunction* _print = function_create_native_function(print);
-    scope_declare(scope, "print", JS_VALUE_FUNCTION(_print));
+    scope_declare(scope, init_string("print"), JS_VALUE_FUNCTION(_print));
 }
 
 MODULE_INIT(core_init);

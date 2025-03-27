@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "allocator.h"
 #include "panic.h"
 #include "api.h"
 
@@ -151,7 +152,6 @@ void inst_minus(VM* vm, void* ptr)
 
     vm->stats.stack_counter--;
 
-
     if (left.type == JS_INTEGER && right.type == JS_INTEGER)
     {
         vm->stats.stack[vm->stats.stack_counter - 1].type = JS_INTEGER;
@@ -242,7 +242,7 @@ void inst_load_local(VM* vm, void* ptr)
         PANIC("Symbol not found");
     }
     vm->stats.stack[vm->stats.stack_counter++] = scope_get(vm->scope, key);
-    free(key);
+    js_free(key);
 }
 
 void inst_load_arg(VM* vm, void* ptr)
@@ -378,6 +378,7 @@ void inst_obj_load(VM* vm, void* ptr)
                             ? ((JSFunction*)obj.value.as_pointer)->base
                             : (JSObject*)obj.value.as_pointer;
     vm->stats.stack[vm->stats.stack_counter++] = object_get_property(obj_ptr, key);
+    js_free(key);
 }
 
 void inst_push_scope(VM* vm, void* ptr)
@@ -510,4 +511,27 @@ JSValue vm_exec_function(VM* vm, JSFunction* function)
     vm->scope = scope;
 
     return return_value;
+}
+
+void vm_free(VM vm)
+{
+    Scope* scope = vm.scope;
+    int global_scope_freed = 0;
+    while (scope)
+    {
+        if (scope == vm.globalScope)
+        {
+            global_scope_freed = 1;
+        }
+        Scope* parent_scope = scope->parent;
+        scope_free(scope);
+        scope = parent_scope;
+    }
+
+    if (!global_scope_freed)
+    {
+        // GlobalScope cannot have a parent
+        // so we can just free it
+        scope_free(vm.globalScope);
+    }
 }

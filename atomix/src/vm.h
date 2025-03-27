@@ -32,4 +32,6 @@ void vm_exec(VM* vm);
 
 JSValue vm_exec_function(VM* vm, JSFunction* function);
 
+void vm_free(VM vm);
+
 #endif //VM_H
