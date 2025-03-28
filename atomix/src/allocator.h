@@ -1,7 +1,7 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
-#include <inttypes.h>
+#include <stddef.h>
 
 extern size_t allocated_memory;
 extern size_t freed_memory;
