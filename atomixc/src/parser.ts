@@ -6,6 +6,7 @@ import {beginPipe} from "./pipe";
 import {buildFile, FileFormat} from "./format/file";
 import {FormatWriter} from "./writer";
 import * as dumper from "./dumper";
+import * as transform from "./transform";
 
 export function parseFile(input: string, output: string): void {
     const content = fs.readFileSync(input, "utf-8");
@@ -13,6 +14,8 @@ export function parseFile(input: string, output: string): void {
         ecmaVersion: 6,
         sourceType: "module"
     });
+
+    transform.transformProgram(program);
 
     const stringTable: StringTableBuilder = new StringTableBuilder();
     const dataSection: DataSectionBuilder = new DataSectionBuilder();

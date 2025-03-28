@@ -124,6 +124,10 @@ pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => {
 }
 
 pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeContext) => {
+    if (node.operator != "=") {
+        throw "Unsupported operator";
+    }
+    
     if (node.left.type == "Identifier") {
         pipeNode(node.right, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
@@ -131,6 +135,7 @@ pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeConte
         ctx.data.addInstruction(new Instruction(Opcodes.STORE_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
         return;
     }
+    
     if (node.left.type == "MemberExpression") {
         if (node.left.computed) {
             throw "Computed property are not supported";
