@@ -1,0 +1,1 @@
+print(0xFF00 & 0xF0F0);
