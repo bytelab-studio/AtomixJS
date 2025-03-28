@@ -2,4 +2,4 @@ function foo() {
 
 }
 
-print(foo | 0xFF);
+print(0xFF | foo);
