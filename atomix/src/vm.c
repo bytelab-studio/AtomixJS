@@ -171,6 +171,50 @@ void inst_minus(VM* vm, void* ptr)
     }
 }
 
+void inst_teq(VM* vm, void* ptr) {
+    if (vm->stats.stack_counter < 2)
+    {
+        PANIC("Stack overflow");
+    }
+    JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
+    JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
+
+    vm->stats.stack_counter--;
+
+    if (left.type != right.type && 
+        !(left.type == JS_DOUBLE && right.type == JS_INTEGER ||
+          left.type == JS_INTEGER && right.type == JS_DOUBLE)) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(0);
+        return;
+    }
+
+    if (left.type == JS_DOUBLE && right.type == JS_INTEGER) {
+        double rightValue = (double)right.value.as_int;
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_double == rightValue);
+        return;
+    }
+    if (left.type == JS_INTEGER && right.type == JS_DOUBLE) {
+        double leftValue = (double)left.value.as_int;
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(leftValue == right.value.as_double);
+        return;
+    }
+    if (left.type == JS_INTEGER) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_int == right.value.as_int);
+        return;  
+    }
+    if (left.type == JS_DOUBLE) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_double == right.value.as_double);
+        return;    
+    }
+
+    if (left.type == JS_FUNC || left.type == JS_OBJECT) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_pointer == right.value.as_pointer);
+        return;
+    }
+
+    PANIC("Unknown comparision");
+}
+
 void inst_pop(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter == 0)
@@ -442,6 +486,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_LD_FALSE] = inst_ld_boolean;
     vm.inst_set[OP_ADD] = inst_add;
     vm.inst_set[OP_MINUS] = inst_minus;
+    vm.inst_set[OP_TEQ] = inst_teq;
     vm.inst_set[OP_POP] = inst_pop;
     vm.inst_set[OP_DUP] = inst_dup;
     vm.inst_set[OP_SWAP] = inst_swap;
