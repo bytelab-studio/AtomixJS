@@ -27,7 +27,7 @@ function transformNode(node: acorn.Node): acorn.Node {
     }) as acorn.Node;
 }
 
-function transformAssignmentExpression(node: acorn.AssignmentExpression) {
+function transformAssignmentExpression(node: acorn.AssignmentExpression): acorn.Node {
     if (node.operator == "=") {
         return node;
     }
