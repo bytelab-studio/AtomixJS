@@ -11,6 +11,7 @@ export enum Opcodes {
     LD_FALSE,
     ADD,
     MINUS,
+    BINARY_AND,
     BINARY_OR,
     POP,
     DUP,
