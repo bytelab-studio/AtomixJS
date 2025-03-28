@@ -20,6 +20,7 @@ typedef enum
     OP_BINARY_AND,
     OP_BINARY_OR,
     OP_BINARY_XOR,
+    OP_TEQ,
     OP_POP,
     OP_DUP,
     OP_SWAP,
@@ -41,7 +42,7 @@ typedef enum
     OP_JMP_T
 } Opcode;
 
-#define OPCODE_LENGTH 32
+#define OPCODE_LENGTH 33
 
 typedef struct
 {

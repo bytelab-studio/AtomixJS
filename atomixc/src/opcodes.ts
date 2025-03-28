@@ -14,6 +14,7 @@ export enum Opcodes {
     BINARY_AND,
     BINARY_OR,
     BINARY_XOR,
+    TEQ,
     POP,
     DUP,
     SWAP,

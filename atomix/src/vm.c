@@ -181,21 +181,20 @@ void inst_binary_and(VM* vm, void* ptr) {
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE || 
+    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
         right.type != JS_INTEGER && right.type != JS_DOUBLE) {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
         return;
-    }
+        }
 
     int leftValue = left.type == JS_DOUBLE
         ? (int)left.value.as_double
         : left.value.as_int;
 
-    
     int rightValue = right.type == JS_DOUBLE
         ? (int)right.value.as_double
         : right.value.as_int;
-    
+
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue & rightValue);
 }
 
@@ -217,7 +216,7 @@ void inst_binary_or(VM* vm, void* ptr) {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)left.value.as_double);
         } else if (right.type == JS_INTEGER) {
             vm->stats.stack[vm->stats.stack_counter - 1] = right;
-        } else if (left.type == JS_DOUBLE) {
+        } else if (right.type == JS_DOUBLE) {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)right.value.as_double);
         } else {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
@@ -254,7 +253,7 @@ void inst_binary_xor(VM* vm, void* ptr) {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)left.value.as_double);
         } else if (right.type == JS_INTEGER) {
             vm->stats.stack[vm->stats.stack_counter - 1] = right;
-        } else if (left.type == JS_DOUBLE) {
+        } else if (right.type == JS_DOUBLE) {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)right.value.as_double);
         } else {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
@@ -271,6 +270,51 @@ void inst_binary_xor(VM* vm, void* ptr) {
         : right.value.as_int;
     
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue ^ rightValue);
+}
+
+void inst_teq(VM* vm, void* ptr) {
+    if (vm->stats.stack_counter < 2)
+    {
+        PANIC("Stack overflow");
+    }
+    JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
+    JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
+
+    vm->stats.stack_counter--;
+  
+    if (left.type != right.type && 
+        !(left.type == JS_DOUBLE && right.type == JS_INTEGER ||
+          left.type == JS_INTEGER && right.type == JS_DOUBLE)
+       ) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(0);
+        return;
+    }
+
+    if (left.type == JS_DOUBLE && right.type == JS_INTEGER) {
+        double rightValue = (double)right.value.as_int;
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_double == rightValue);
+        return;
+    }
+    if (left.type == JS_INTEGER && right.type == JS_DOUBLE) {
+        double leftValue = (double)left.value.as_int;
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(leftValue == right.value.as_double);
+        return;
+    }
+    if (left.type == JS_INTEGER) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_int == right.value.as_int);
+        return;  
+    }
+    if (left.type == JS_DOUBLE) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_double == right.value.as_double);
+        return;    
+    }
+
+    if (left.type == JS_FUNC || left.type == JS_OBJECT) {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_pointer == right.value.as_pointer);
+        return;
+    }
+
+    PANIC("Unknown comparision");
 }
 
 void inst_pop(VM* vm, void* ptr)
@@ -547,6 +591,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_BINARY_AND] = inst_binary_and;
     vm.inst_set[OP_BINARY_OR] = inst_binary_or;
     vm.inst_set[OP_BINARY_XOR] = inst_binary_xor;
+    vm.inst_set[OP_TEQ] = inst_teq;
     vm.inst_set[OP_POP] = inst_pop;
     vm.inst_set[OP_DUP] = inst_dup;
     vm.inst_set[OP_SWAP] = inst_swap;
