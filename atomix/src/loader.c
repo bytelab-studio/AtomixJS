@@ -87,6 +87,7 @@ void* load_instruction(const char* buff, size_t* start_position)
         }
     case OP_ADD:
     case OP_MINUS:
+    case OP_BINARY_XOR:
     case OP_POP:
     case OP_DUP:
     case OP_SWAP:
