@@ -12,6 +12,7 @@ export enum Opcodes {
     ADD,
     MINUS,
     BINARY_AND,
+    BINARY_OR,
     POP,
     DUP,
     SWAP,
