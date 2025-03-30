@@ -11,6 +11,17 @@ export function transformProgram(program: acorn.Program): void {
     }
 }
 
+function packNodes(nodes: acorn.Node[]): acorn.Node {
+    return (<acorn.BlockStatement>({
+        type: "BlockStatement",
+        body: nodes,
+        start: 0,
+        end: 0,
+        // Virtual block to ignore PUSH_SCOPE and POP_SCOPE instructions
+        virtual: true
+    }));
+}
+
 function transformNode(node: acorn.Node): acorn.Node {
     return esttraverse.replace(node as any, {
         // @ts-ignore
@@ -23,7 +34,7 @@ function transformNode(node: acorn.Node): acorn.Node {
         },
         leave(node) {
             console.log("Leave %s", node.type);
-        },
+        }
     }) as acorn.Node;
 }
 

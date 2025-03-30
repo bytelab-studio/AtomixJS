@@ -1,4 +1,4 @@
-#include "vm.h"
+#include "execution.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,7 +171,8 @@ void inst_minus(VM* vm, void* ptr)
     }
 }
 
-void inst_binary_and(VM* vm, void* ptr) {
+void inst_binary_and(VM* vm, void* ptr)
+{
     if (vm->stats.stack_counter < 2)
     {
         PANIC("Stack overflow");
@@ -181,25 +182,27 @@ void inst_binary_and(VM* vm, void* ptr) {
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE || 
-        right.type != JS_INTEGER && right.type != JS_DOUBLE) {
+    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
+        right.type != JS_INTEGER && right.type != JS_DOUBLE)
+    {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
         return;
     }
 
     int leftValue = left.type == JS_DOUBLE
-        ? (int)left.value.as_double
-        : left.value.as_int;
+                        ? (int)left.value.as_double
+                        : left.value.as_int;
 
-    
+
     int rightValue = right.type == JS_DOUBLE
-        ? (int)right.value.as_double
-        : right.value.as_int;
-    
+                         ? (int)right.value.as_double
+                         : right.value.as_int;
+
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue & rightValue);
 }
 
-void inst_binary_or(VM* vm, void* ptr) {
+void inst_binary_or(VM* vm, void* ptr)
+{
     if (vm->stats.stack_counter < 2)
     {
         PANIC("Stack overflow");
@@ -209,34 +212,45 @@ void inst_binary_or(VM* vm, void* ptr) {
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE || 
-        right.type != JS_INTEGER && right.type != JS_DOUBLE) {
-        if (left.type == JS_INTEGER) {
+    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
+        right.type != JS_INTEGER && right.type != JS_DOUBLE)
+    {
+        if (left.type == JS_INTEGER)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = left;
-        } else if (left.type == JS_DOUBLE) {
+        }
+        else if (left.type == JS_DOUBLE)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)left.value.as_double);
-        } else if (right.type == JS_INTEGER) {
+        }
+        else if (right.type == JS_INTEGER)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = right;
-        } else if (left.type == JS_DOUBLE) {
+        }
+        else if (left.type == JS_DOUBLE)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)right.value.as_double);
-        } else {
+        }
+        else
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
         }
         return;
     }
 
     int leftValue = left.type == JS_DOUBLE
-        ? (int)left.value.as_double
-        : left.value.as_int;
+                        ? (int)left.value.as_double
+                        : left.value.as_int;
 
     int rightValue = right.type == JS_DOUBLE
-        ? (int)right.value.as_double
-        : right.value.as_int;
+                         ? (int)right.value.as_double
+                         : right.value.as_int;
 
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue | rightValue);
 }
 
-void inst_binary_xor(VM* vm, void* ptr) {
+void inst_binary_xor(VM* vm, void* ptr)
+{
     if (vm->stats.stack_counter < 2)
     {
         PANIC("Stack overflow");
@@ -246,30 +260,40 @@ void inst_binary_xor(VM* vm, void* ptr) {
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE || 
-        right.type != JS_INTEGER && right.type != JS_DOUBLE) {
-        if (left.type == JS_INTEGER) {
+    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
+        right.type != JS_INTEGER && right.type != JS_DOUBLE)
+    {
+        if (left.type == JS_INTEGER)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = left;
-        } else if (left.type == JS_DOUBLE) {
+        }
+        else if (left.type == JS_DOUBLE)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)left.value.as_double);
-        } else if (right.type == JS_INTEGER) {
+        }
+        else if (right.type == JS_INTEGER)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = right;
-        } else if (left.type == JS_DOUBLE) {
+        }
+        else if (left.type == JS_DOUBLE)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT((int)right.value.as_double);
-        } else {
+        }
+        else
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
         }
         return;
     }
 
     int leftValue = left.type == JS_DOUBLE
-        ? (int)left.value.as_double
-        : left.value.as_int;
-        
+                        ? (int)left.value.as_double
+                        : left.value.as_int;
+
     int rightValue = right.type == JS_DOUBLE
-        ? (int)right.value.as_double
-        : right.value.as_int;
-    
+                         ? (int)right.value.as_double
+                         : right.value.as_int;
+
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue ^ rightValue);
 }
 
@@ -422,7 +446,7 @@ void inst_call(VM* vm, void* ptr)
             PANIC("Function holds not a valid pointer");
         }
         JSValue* args = &vm->stats.stack[vm->stats.stack_counter - inst->operand];
-        return_value = function->native_function(args, inst->operand);
+        return_value = function->native_function(vm, args, inst->operand);
         vm->stats.stack_counter -= inst->operand;
     }
     else
@@ -524,6 +548,19 @@ void inst_jmp_t(VM* vm, void* ptr)
     }
 }
 
+void inst_export(VM* vm, void* ptr)
+{
+    InstUInt16* inst = ptr;
+    if (vm->stats.stack_counter < 1)
+    {
+        PANIC("Stack underflow");
+    }
+
+    JSValue value = vm->stats.stack[--vm->stats.stack_counter];
+    char* key = string_table_load_str(&vm->module.string_table, inst->operand);
+    object_set_property(vm->module.exports, key, value);
+}
+
 VM vm_init(JSModule module)
 {
     VM vm;
@@ -566,6 +603,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_JMP] = inst_jmp;
     vm.inst_set[OP_JMP_F] = inst_jmp_f;
     vm.inst_set[OP_JMP_T] = inst_jmp_t;
+    vm.inst_set[OP_EXPORT] = inst_export;
 
     bind_modules(vm.globalScope);
 

@@ -1,7 +1,8 @@
 #ifndef MODULE_H
 #define MODULE_H
 
-#include <inttypes.h>
+#include "dict.h"
+#include "object.h"
 
 typedef struct
 {
@@ -30,6 +31,7 @@ typedef struct
 
     StringTable string_table;
     DataSection data_section;
+    JSObject* exports;
 } JSModule;
 
 char* string_table_load_str(StringTable* table, uint32_t idx);

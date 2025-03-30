@@ -11,8 +11,8 @@ add_executable(atomix main.c
         src/module.c
         src/module.h
         src/panic.h
-        src/vm.c
-        src/vm.h
+        src/execution.c
+        src/execution.h
         src/object.c
         src/object.h
         src/dict.c
@@ -28,4 +28,5 @@ add_executable(atomix main.c
         src/value.c
         src/allocator.c
         src/allocator.h
+        src/vm.h
 )
