@@ -26,7 +26,9 @@ function* pipeFiles(dir) {
 function compileProgram(test) {
     process.stdout.write(` - Compile program: ${test}: `);
     const outputFile = test + ".bin";
-    const buildResult = child_process.spawnSync("node", [COMPILER, test, outputFile]);
+    const buildResult = child_process.spawnSync("node", [COMPILER, test, outputFile], {
+        encoding: "utf-8"
+    });
 
     if (buildResult.status != 0) {
         console.log("Fail");
@@ -43,6 +45,7 @@ function runProgram(file) {
     const testResult = child_process.spawnSync(VM_RUNNER, [file], {
         encoding: "utf-8"
     });
+    console.log(testResult);
     if (testResult.status != 0) {
         console.log("Fail");
         console.log(testResult.stderr);
