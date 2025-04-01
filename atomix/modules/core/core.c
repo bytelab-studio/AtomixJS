@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "../api.h"
-#include "../function.h"
+#include "api.h"
+#include "function.h"
 
 JSValue print(JSValue* args, size_t argc)
 {
