@@ -92,6 +92,10 @@ void* load_instruction(const char* buff, size_t* start_position)
     case OP_BINARY_AND:
     case OP_BINARY_OR:
     case OP_BINARY_XOR:
+    case OP_BINARY_LSHFT:
+    case OP_BINARY_RSHFT:
+    case OP_BINARY_ZRSHFT:
+    case OP_TEQ:
     case OP_POP:
     case OP_DUP:
     case OP_SWAP:
