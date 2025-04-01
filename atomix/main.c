@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "src/loader.h"
-#include "src/vm.h"
+#include "src/execution.h"
 #include "src/allocator.h"
 
 // #define PRINT_MEMORY_USAGE

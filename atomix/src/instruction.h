@@ -42,10 +42,11 @@ typedef enum
     OP_POP_SCOPE,
     OP_JMP,
     OP_JMP_F,
-    OP_JMP_T
+    OP_JMP_T,
+    OP_EXPORT
 } Opcode;
 
-#define OPCODE_LENGTH 36
+#define OPCODE_LENGTH 37
 
 typedef struct
 {

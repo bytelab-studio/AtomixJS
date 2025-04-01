@@ -36,7 +36,8 @@ export enum Opcodes {
     POP_SCOPE,
     JMP,
     JMP_F,
-    JMP_T
+    JMP_T,
+    EXPORT
 }
 
 export const OPCODE_SIZE = Size.new(1, "byte");

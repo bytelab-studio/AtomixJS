@@ -8,6 +8,8 @@
 #include "allocator.h"
 #include "instruction.h"
 
+#define EXPORT_BUCKET_SIZE 16
+
 JSModule module_load_from_file(const char* filename)
 {
     FILE* file = fopen(filename, "rb");
@@ -123,6 +125,7 @@ void* load_instruction(const char* buff, size_t* start_position)
     case OP_JMP:
     case OP_JMP_F:
     case OP_JMP_T:
+    case OP_EXPORT:
         {
             InstUInt16* x = js_malloc(sizeof(InstUInt16));
             x->opcode = opcode;
@@ -188,6 +191,7 @@ JSModule module_load_from_buffer(char* buff)
 
     module.string_table = load_string_table(buff + module.header.string_table);
     module.data_section = load_data_section(buff + module.header.data_section);
+    module.exports = object_create_object(object_get_object_prototype());
     return module;
 }
 
@@ -203,4 +207,5 @@ void module_free(JSModule module)
         }
     }
     js_free(module.data_section.instructions);
+    object_free(module.exports);
 }
