@@ -6,7 +6,6 @@ add_library(core STATIC
         module.c
         module.h
         panic.h
-        vm.c
         vm.h
         object.c
         object.h
@@ -22,6 +21,8 @@ add_library(core STATIC
         api.h
         allocator.c
         allocator.h
+        execution.c
+        execution.h
 )
 
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 project(atomix C)
+
 set(CMAKE_C_STANDARD 99)
 
 # Module List

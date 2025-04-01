@@ -61,7 +61,6 @@ pipe["Literal"] = (node: acorn.Literal, ctx: PipeContext) => {
 }
 
 pipe["Identifier"] = (node: acorn.Identifier, ctx: PipeContext) => {
-
     if (node.name == "undefined") {
         ctx.data.addInstruction(new Instruction(Opcodes.LD_UNDF));
         return;
@@ -148,7 +147,7 @@ pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeConte
     if (node.operator != "=") {
         throw "Unsupported operator";
     }
-    
+
     if (node.left.type == "Identifier") {
         pipeNode(node.right, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
@@ -156,7 +155,7 @@ pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeConte
         ctx.data.addInstruction(new Instruction(Opcodes.STORE_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
         return;
     }
-    
+
     if (node.left.type == "MemberExpression") {
         if (node.left.computed) {
             throw "Computed property are not supported";
@@ -226,14 +225,18 @@ pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: acorn.Function
 }
 
 pipe["BlockStatement"] = (node: acorn.BlockStatement, ctx: PipeContext) => {
-    ctx.data.addInstruction(new Instruction(Opcodes.PUSH_SCOPE));
+    if (!("virtual" in node) || !node.virtual) {
+        ctx.data.addInstruction(new Instruction(Opcodes.PUSH_SCOPE));
+    }
     for (const item of node.body) {
         pipeNode(item, ctx);
         if (item.type == "FunctionDeclaration") {
             ctx.data.addInstruction(new Instruction(Opcodes.POP));
         }
     }
-    ctx.data.addInstruction(new Instruction(Opcodes.POP_SCOPE));
+    if (!("virtual" in node) || !node.virtual) {
+        ctx.data.addInstruction(new Instruction(Opcodes.POP_SCOPE));
+    }
 }
 
 pipe["ReturnStatement"] = (node: acorn.ReturnStatement, ctx: PipeContext) => {
@@ -261,4 +264,46 @@ pipe["IfStatement"] = (node: acorn.IfStatement, ctx: PipeContext) => {
     } else {
         ctx.data.replaceInstruction(jmpToEnd, new Instruction(Opcodes.JMP).addOperand(new ConstantUNumberOperand(ctx.data.getCount(), "short")));
     }
+}
+
+pipe["ExportNamedDeclaration"] = (node: acorn.ExportNamedDeclaration, ctx: PipeContext) => {
+    if (node.declaration) {
+        pipeNode(node.declaration, ctx);
+        if (node.declaration.type == "VariableDeclaration") {
+            for (const declarator of node.declaration.declarations) {
+                if (declarator.id.type != "Identifier") {
+                    throw "Unexpected variable id";
+                }
+                pipeNode(declarator.id, ctx);
+                const idx: number = ctx.stringTable.registerString(declarator.id.name);
+                ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
+            }
+        } else {
+            const idx: number = ctx.stringTable.registerString(node.declaration.id.name);
+            ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
+        }
+    }
+
+    for (const specifier of node.specifiers) {
+        pipeNode(specifier.local, ctx);
+
+        let exportIdx: number;
+        if (specifier.exported.type == "Literal") {
+            if (typeof specifier.exported.value != "string") {
+                throw "Expected a string";
+            }
+            exportIdx = ctx.stringTable.registerString(specifier.exported.value);
+        } else {
+            exportIdx = ctx.stringTable.registerString(specifier.exported.name);
+        }
+
+        ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
+    }
+}
+
+pipe["ExportDefaultDeclaration"] = (node: acorn.ExportDefaultDeclaration, ctx: PipeContext) => {
+    pipeNode(node.declaration, ctx);
+    // TODO may use a symbol for default exports
+    const idx: number = ctx.stringTable.registerString("default");
+    ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
 }

@@ -3,7 +3,7 @@
 #include "api.h"
 #include "function.h"
 
-JSValue print(JSValue* args, size_t argc)
+JSValue print(VM* vm, JSValue* args, size_t argc)
 {
     if (argc == 0)
     {
@@ -50,10 +50,22 @@ JSValue print(JSValue* args, size_t argc)
     return JS_VALUE_UNDEFINED;
 }
 
+JSValue module_get_export_obj(VM* vm, JSValue* args, size_t argc)
+{
+    return JS_VALUE_OBJECT(vm->module.exports);
+}
+
 void core_init(Scope* scope)
 {
     JSFunction* _print = function_create_native_function(print);
     scope_declare(scope, init_string("print"), JS_VALUE_FUNCTION(_print));
+
+    JSObject* _module = object_create_object(object_get_object_prototype());
+
+    JSFunction* _module_get_export_obj = function_create_native_function(module_get_export_obj);
+    object_set_property(_module, init_string("getExportObj"), JS_VALUE_FUNCTION(_module_get_export_obj));
+
+    scope_declare(scope, init_string("module"), JS_VALUE_OBJECT(_module));
 }
 
 MODULE_INIT(core_init);

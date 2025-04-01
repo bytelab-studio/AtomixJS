@@ -2,7 +2,7 @@
 
 #include "loader.h"
 #include "module.h"
-#include "vm.h"
+#include "execution.h"
 
 // #define PRINT_MEMORY_USAGE
 

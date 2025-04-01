@@ -4,8 +4,9 @@
 #include "module.h"
 #include "object.h"
 #include "scope.h"
+#include "vm.h"
 
-typedef JSValue (*JSNativeFunction)(JSValue* args, size_t argc);
+typedef JSValue (*JSNativeFunction)(VM* vm, JSValue* args, size_t argc);
 
 typedef struct
 {
