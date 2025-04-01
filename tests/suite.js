@@ -6,8 +6,8 @@ const os = require("node:os");
 const NODE_SUIT = path.join(__dirname, "utils", "node-suit.js");
 const COMPILER = path.join(__dirname, "..", "atomixc", "dist", "bin", "atomixc.js");
 const VM_RUNNER = os.platform() == "win32"
-    ? path.join(__dirname, "..", "atomix", "cmake-build-debug", "atomix.exe")
-    : path.join(__dirname, "..", "atomix", "cmake-build-debug", "atomix");
+    ? path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix.exe")
+    : path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix");
 
 function* pipeFiles(dir) {
     const entries = fs.readdirSync(dir, {withFileTypes: true});
@@ -26,7 +26,9 @@ function* pipeFiles(dir) {
 function compileProgram(test) {
     process.stdout.write(` - Compile program: ${test}: `);
     const outputFile = test + ".bin";
-    const buildResult = child_process.spawnSync("node", [COMPILER, test, outputFile]);
+    const buildResult = child_process.spawnSync("node", [COMPILER, test, outputFile], {
+        encoding: "utf-8"
+    });
 
     if (buildResult.status != 0) {
         console.log("Fail");

@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-#include "src/loader.h"
-#include "src/execution.h"
-#include "src/allocator.h"
+#include "loader.h"
+#include "module.h"
+#include "execution.h"
 
 // #define PRINT_MEMORY_USAGE
 
