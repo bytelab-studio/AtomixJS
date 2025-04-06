@@ -30,6 +30,9 @@ function transformNode(node: acorn.Node): acorn.Node {
             if (node.type == "AssignmentExpression") {
                 return transformAssignmentExpression(node as acorn.AssignmentExpression);
             }
+            if (node.type == "ForStatement") {
+                return transformForStatement(node as acorn.ForStatement);
+            }
             return node;
         },
         leave(node) {
@@ -63,4 +66,40 @@ function transformAssignmentExpression(node: acorn.AssignmentExpression): acorn.
         loc: node.loc,
         range: node.range
     });
+}
+
+function transformForStatement(node: acorn.ForStatement) {
+    const nodes: acorn.Node[] = [];
+    if (node.init) {
+        nodes.push(node.init);
+    }
+
+    const test: acorn.Expression = node.test
+        ? node.test
+        : (<acorn.Literal>{
+            type: "Literal",
+            value: true,
+            raw: "true",
+            start: node.start,
+            end: node.end,
+            loc: node.loc,
+            range: node.range
+        });
+
+    const body: acorn.Node = node.update
+        ? packNodes([node.body, node.update])
+        : node.body;
+
+    nodes.push((<acorn.WhileStatement>{
+        type: "WhileStatement",
+        test: test,
+        body: body,
+        start: node.start,
+        end: node.end,
+        loc: node.loc,
+        range: node.range
+    }));
+
+
+    return packNodes(nodes);
 }
