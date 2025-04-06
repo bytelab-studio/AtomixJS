@@ -19,6 +19,7 @@ export enum Opcodes {
     BINARY_ZRSHFT,
     TEQ,
     NTEQ,
+    GT,
     POP,
     DUP,
     SWAP,
