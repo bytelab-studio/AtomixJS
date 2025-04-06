@@ -26,7 +26,9 @@ typedef enum
     OP_TEQ,
     OP_NTEQ,
     OP_GT,
+    OP_GEQ,
     OP_LT,
+    OP_LEQ,
     OP_POP,
     OP_DUP,
     OP_SWAP,
@@ -49,7 +51,7 @@ typedef enum
     OP_EXPORT
 } Opcode;
 
-#define OPCODE_LENGTH 40
+#define OPCODE_LENGTH 42
 
 typedef struct
 {
