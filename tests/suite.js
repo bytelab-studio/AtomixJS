@@ -1,16 +1,30 @@
-const fs = require("fs");
+const fs = require("fs/promises");
+const fsSync = require("fs");
 const path = require("path");
 const child_process = require("child_process");
-const os = require("node:os");
+const os = require("os");
 
 const NODE_SUIT = path.join(__dirname, "utils", "node-suit.js");
 const COMPILER = path.join(__dirname, "..", "atomixc", "dist", "bin", "atomixc.js");
-const VM_RUNNER = os.platform() == "win32"
+const VM_RUNNER = os.platform() === "win32"
     ? path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix.exe")
     : path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix");
+const WORKERS = 4;
+
+class AsyncLock {
+    constructor() {
+        this.lock = Promise.resolve();
+    }
+
+    acquire(fn) {
+        const next = this.lock.then(() => fn());
+        this.lock = next.catch(() => {}); // Prevent lock from halting on errors
+        return next;
+    }
+}
 
 function* pipeFiles(dir) {
-    const entries = fs.readdirSync(dir, {withFileTypes: true});
+    const entries = fsSync.readdirSync(dir, {withFileTypes: true});
 
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
@@ -23,81 +37,88 @@ function* pipeFiles(dir) {
     }
 }
 
-function compileProgram(test) {
-    process.stdout.write(` - Compile program: ${test}: `);
-    const outputFile = test + ".bin";
-    const buildResult = child_process.spawnSync("node", [COMPILER, test, outputFile], {
-        encoding: "utf-8"
+function runSubprocess(command, args) {
+    return new Promise((resolve, reject) => {
+        const child = child_process.spawn(command, args, {encoding: "utf-8"});
+
+        let stdout = "";
+        let stderr = "";
+
+        child.stdout.on("data", data => stdout += data);
+        child.stderr.on("data", data => stderr += data);
+
+        child.on("error", reject);
+
+        child.on("close", code => {
+            if (code !== 0) {
+                return reject(new Error(`Process exited with code ${code}`));
+            }
+            resolve(stdout);
+        });
     });
+}
 
-    if (buildResult.status != 0) {
-        console.log("Fail");
-        console.log(buildResult.stderr);
-    } else {
-        console.log("Done");
-    }
-
+async function compileProgram(test) {
+    const outputFile = test + ".bin";
+    await runSubprocess("node", [COMPILER, test, outputFile]);
     return outputFile;
 }
 
-function runProgram(file) {
-    process.stdout.write(` - Run test: `);
-    const testResult = child_process.spawnSync(VM_RUNNER, [file], {
-        encoding: "utf-8"
-    });
-    if (testResult.status != 0) {
-        console.log("Fail");
-        console.log(testResult.stderr);
-    } else {
-        console.log("Done");
-    }
-    return testResult.stdout.replace(/\r\n/g, "\n");
+async function runProgram(file) {
+    const testResult = await runSubprocess(VM_RUNNER, [file]);
+    return testResult.replace(/\r\n/g, "\n");
 }
 
-let executed = 0;
-let failed = 0;
+async function getSnapshot(test) {
+    const file = test + ".snp";
+    try {
+        const content = await fs.readFile(file, "utf-8");
+        return content.replace(/\r\n/g, "\n");
+    } catch (err) {
+        if (err.code !== "ENOENT") throw err;
+    }
 
-for (const test of pipeFiles(path.join(__dirname, "src"))) {
-    console.log(`Test: ${test}`);
-    const snapshotFile = test + ".snp";
-    let assert;
-    if (!fs.existsSync(snapshotFile)) {
-        process.stdout.write(" - No snapshot found, run nodejs suit: ");
-        const subProcess = child_process.spawnSync("node", [NODE_SUIT, test], {
-            encoding: "utf-8"
+    const output = await runSubprocess("node", [NODE_SUIT, test]);
+
+    await fs.writeFile(file, output, "utf-8");
+
+    return output;
+}
+
+
+const tests = Array.from(pipeFiles(path.join(__dirname, "src")));
+let testCount = tests.length;
+const failedFiles = [];
+const mutex = new AsyncLock();
+
+Promise.all(Array.from({length: WORKERS}, async () => {
+    while (tests.length > 0) {
+        let test;
+        await mutex.acquire(() => {
+            test = tests.pop();
         });
-        fs.writeFileSync(snapshotFile, subProcess.stdout);
-        assert = subProcess.stdout.replace(/\r\n/g, "\n");
-        if (subProcess.status != 0) {
-            console.log("Fail");
-            console.log(subProcess.stderr);
+        const [assert, program] = await Promise.all([
+            getSnapshot(test),
+            compileProgram(test)
+        ]);
+        const result = await runProgram(program);
+        if (assert !== result) {
+            process.stdout.write("E");
+            failedFiles.push(test);
         } else {
-            console.log("Done");
+            process.stdout.write(".");
         }
-    } else {
-        assert = fs.readFileSync(snapshotFile, "utf-8").replace(/\r\n/g, "\n");
+    }
+})).then(() => {
+    if (failedFiles.length > 0) {
+        console.log();
+        console.log();
+        console.log(failedFiles.map(f => "- " + f).join("\n"));
     }
 
-    const program = compileProgram(test);
-    const testContent = runProgram(program);
-    executed++;
-    if (assert != testContent) {
-        failed++;
-        console.log(" - Fail:");
-        console.log("Expected:")
-        console.log(assert);
-        console.log("Retrieved:")
-        console.log(testContent);
-    } else {
-        console.log(" - OK");
-    }
-}
+    console.log();
+    console.log();
+    console.log(`Executed ${testCount} test, ${failedFiles.length} failed`);
+    process.exit(failedFiles.length > 0 ? 1 : 0);
+});
 
-console.log();
-console.log();
-console.log(`Executed ${executed} test, ${failed} failed`);
-if (failed > 0) {
-    process.exit(1);
-}
-
-process.exit(0);
