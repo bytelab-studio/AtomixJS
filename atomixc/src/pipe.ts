@@ -111,6 +111,9 @@ pipe["BinaryExpression"] = (node: acorn.BinaryExpression, ctx: PipeContext) => {
         case ">":
             ctx.data.addInstruction(new Instruction(Opcodes.GT));
             break;
+        case "<":
+            ctx.data.addInstruction(new Instruction(Opcodes.LT));
+            break;
         default:
             throw "Unsupported operator " + node.operator;
     }

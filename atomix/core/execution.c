@@ -578,6 +578,66 @@ void inst_gt(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
+void inst_lt(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 2)
+    {
+        PANIC("Stack overflow");
+    }
+    JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
+    JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
+
+    vm->stats.stack_counter--;
+
+    if (left.type == JS_BOOLEAN)
+    {
+        left.type = JS_INTEGER;
+    }
+    if (right.type == JS_BOOLEAN)
+    {
+        right.type = JS_INTEGER;
+    }
+
+    if (left.type == JS_UNDEFINED || right.type == JS_UNDEFINED)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(0);
+        return;
+    }
+    if (left.type == JS_NULL)
+    {
+        left = JS_VALUE_INT(0);
+    }
+    if (right.type == JS_NULL)
+    {
+        right = JS_VALUE_INT(0);
+    }
+
+    if (left.type == JS_INTEGER && right.type == JS_INTEGER)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_int < right.value.as_int);
+        return;
+    }
+    if (left.type == JS_DOUBLE && right.type == JS_DOUBLE)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_double < right.value.as_double);
+        return;
+    }
+    if (left.type == JS_DOUBLE && right.type == JS_INTEGER)
+    {
+        double rightValue = right.value.as_int;
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(left.value.as_double < rightValue);
+        return;
+    }
+    if (left.type == JS_INTEGER && right.type == JS_DOUBLE)
+    {
+        double leftValue = left.value.as_int;
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(leftValue < right.value.as_double);
+        return;
+    }
+    // TODO string comparison
+    PANIC("Unknown comparison");
+}
+
 void inst_pop(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter == 0)
@@ -871,6 +931,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_TEQ] = inst_teq;
     vm.inst_set[OP_NTEQ] = inst_nteq;
     vm.inst_set[OP_GT] = inst_gt;
+    vm.inst_set[OP_LT] = inst_lt;
     vm.inst_set[OP_POP] = inst_pop;
     vm.inst_set[OP_DUP] = inst_dup;
     vm.inst_set[OP_SWAP] = inst_swap;

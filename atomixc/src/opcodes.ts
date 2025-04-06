@@ -20,6 +20,7 @@ export enum Opcodes {
     TEQ,
     NTEQ,
     GT,
+    LT,
     POP,
     DUP,
     SWAP,
