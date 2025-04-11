@@ -281,6 +281,23 @@ pipe["IfStatement"] = (node: acorn.IfStatement, ctx: PipeContext) => {
     }
 }
 
+pipe["WhileStatement"] = (node: acorn.WhileStatement, ctx: PipeContext) => {
+    /*
+        0: <condition>
+        1: jmp_f 4
+        2: <body>
+        3: jmp 0
+        4: ...
+     */
+
+    const start = ctx.data.getCount();
+    pipeNode(node.test, ctx);
+    const jmpEnd = ctx.data.addInstruction(new Instruction(Opcodes.POP));
+    pipeNode(node.body, ctx);
+    ctx.data.addInstruction(new Instruction(Opcodes.JMP).addOperand(new ConstantUNumberOperand(start, "short")));
+    ctx.data.replaceInstruction(jmpEnd, new Instruction(Opcodes.JMP_F).addOperand(new ConstantUNumberOperand(ctx.data.getCount(), "short")));
+}
+
 pipe["ExportNamedDeclaration"] = (node: acorn.ExportNamedDeclaration, ctx: PipeContext) => {
     if (node.declaration) {
         pipeNode(node.declaration, ctx);
