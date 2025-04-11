@@ -157,7 +157,7 @@ pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
     for (const element of node.elements) {
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
         pipeNode(element, ctx);
-        const indexIdx = ctx.stringTable.registerString(i.toString());
+        const indexIdx = ctx.stringTable.registerString((i++).toString());
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(indexIdx, "short")));
     }
 }
@@ -165,7 +165,9 @@ pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
 pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => {
     pipeNode(node.object, ctx);
     if (node.computed) {
-        throw "Computed property are not supported";
+        pipeNode(node.property, ctx);
+        ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
+        return;
     }
     if (node.property.type != "Identifier") {
         throw "Undefined property";

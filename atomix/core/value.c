@@ -4,6 +4,8 @@
 #include <stdlib.h>
 
 #include "panic.h"
+#include "allocator.h"
+#include "api.h"
 
 int value_is_falsy(JSValue* value)
 {
@@ -38,4 +40,25 @@ int value_is_NaN(JSValue* value)
     uint64_t bits = *((uint64_t*)&value->value.as_double);
     return (bits & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL &&
         (bits & 0x7FF0000000000000ULL) != 0;
+}
+
+inline char* int_to_string(int value) {
+    int size = snprintf(NULL, 0, "%d", value);
+    char* str = js_malloc(size + 1);
+    if (!str) {
+        PANIC("Could not allocated memory");
+    }
+    snprintf(str, size + 1, "%d", value);
+    return str;
+}
+
+inline char* double_to_string(double value) {
+    
+}
+
+char* value_to_string(JSValue* value) {
+    switch (value->type)
+    {
+        
+    }
 }

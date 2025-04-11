@@ -37,6 +37,7 @@ export enum Opcodes {
     OBJ_ALLOC,
     OBJ_STORE,
     OBJ_LOAD,
+    OBJ_CLOAD,
     RETURN,
     PUSH_SCOPE,
     POP_SCOPE,

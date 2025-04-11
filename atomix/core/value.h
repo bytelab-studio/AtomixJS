@@ -48,5 +48,7 @@ static inline int value_is_truthy(JSValue* value)
 
 int value_is_NaN(JSValue* value);
 
+char* value_to_string(JSValue* value);
+
 
 #endif //VALUE_H
