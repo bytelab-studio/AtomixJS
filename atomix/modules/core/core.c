@@ -19,11 +19,20 @@ JSValue print(VM* vm, JSValue* args, size_t argc)
             printf("%i\n", value.value.as_int);
             break;
         case JS_DOUBLE:
+            if (value.value.as_double == JS_POS_INFINITY) {
+                printf("Infinity\n");
+                break;
+            }
+            if (value.value.as_double == JS_NEG_INFINITY) {
+                printf("-Infinity\n");
+                break;
+            }    
             if (value_is_NaN(&value))
             {
                 printf("NaN\n");
                 break;
             }
+            
             printf("%f\n", value.value.as_double);
             break;
         case JS_STRING:

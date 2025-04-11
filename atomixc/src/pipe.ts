@@ -84,6 +84,15 @@ pipe["BinaryExpression"] = (node: acorn.BinaryExpression, ctx: PipeContext) => {
         case "-":
             ctx.data.addInstruction(new Instruction(Opcodes.MINUS));
             break;
+        case "*":
+            ctx.data.addInstruction(new Instruction(Opcodes.MUL));
+            break;
+        case "/":
+            ctx.data.addInstruction(new Instruction(Opcodes.DIV));
+            break;
+        case "%":
+            ctx.data.addInstruction(new Instruction(Opcodes.MOD));
+            break;
         case "&":
             ctx.data.addInstruction(new Instruction(Opcodes.BINARY_AND));
             break;
