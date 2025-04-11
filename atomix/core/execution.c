@@ -918,6 +918,16 @@ void inst_call(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = return_value;
 }
 
+void inst_arr_alloc(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter >= STACK_SIZE)
+    {
+        PANIC("Stack overflow");
+    }
+    JSObject* obj = object_create_object(object_get_array_prototype());
+    vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
+}
+
 void inst_obj_alloc(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
@@ -1064,6 +1074,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_FUNC_DECL] = inst_func_decl;
     vm.inst_set[OP_FUNC_DECL_E] = inst_func_decl;
     vm.inst_set[OP_CALL] = inst_call;
+    vm.inst_set[OP_ARR_ALLOC] = inst_arr_alloc;
     vm.inst_set[OP_OBJ_ALLOC] = inst_obj_alloc;
     vm.inst_set[OP_OBJ_STORE] = inst_obj_store;
     vm.inst_set[OP_OBJ_LOAD] = inst_obj_load;

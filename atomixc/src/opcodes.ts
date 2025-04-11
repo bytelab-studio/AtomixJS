@@ -33,6 +33,7 @@ export enum Opcodes {
     DECLARE_FUNC,
     DECLARE_FUNC_E,
     CALL,
+    ARR_ALLOC,
     OBJ_ALLOC,
     OBJ_STORE,
     OBJ_LOAD,

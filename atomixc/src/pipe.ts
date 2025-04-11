@@ -146,6 +146,22 @@ pipe["ObjectExpression"] = (node: acorn.ObjectExpression, ctx: PipeContext) => {
     }
 }
 
+pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
+    ctx.data.addInstruction(new Instruction(Opcodes.ARR_ALLOC));
+    ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+    const lengthIdx = ctx.stringTable.registerString("length");
+    ctx.data.addInstruction(new Instruction(Opcodes.LD_INT).addOperand(new ConstantIntegerOperand(node.elements.length)));
+    ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(lengthIdx, "short")));
+
+    let i = 0;
+    for (const element of node.elements) {
+        ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+        pipeNode(element, ctx);
+        const indexIdx = ctx.stringTable.registerString(i.toString());
+        ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(indexIdx, "short")));
+    }
+}
+
 pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => {
     pipeNode(node.object, ctx);
     if (node.computed) {
