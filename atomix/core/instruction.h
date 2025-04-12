@@ -57,7 +57,7 @@ typedef enum
     OP_EXPORT
 } Opcode;
 
-#define OPCODE_LENGTH 45
+#define OPCODE_LENGTH 48
 
 typedef struct
 {
