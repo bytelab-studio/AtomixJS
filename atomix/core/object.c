@@ -50,3 +50,16 @@ JSObject* object_get_object_prototype()
 
     return object_prototype;
 }
+
+JSObject* array_prototype = NULL;
+
+JSObject* object_get_array_prototype()
+{
+    // TODO assign constructor etc.
+    if (!array_prototype)
+    {
+        array_prototype = object_create_object(object_get_object_prototype());
+    }
+
+    return object_prototype;
+}

@@ -155,10 +155,28 @@ pipe["ObjectExpression"] = (node: acorn.ObjectExpression, ctx: PipeContext) => {
     }
 }
 
+pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
+    ctx.data.addInstruction(new Instruction(Opcodes.ARR_ALLOC));
+    ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+    const lengthIdx = ctx.stringTable.registerString("length");
+    ctx.data.addInstruction(new Instruction(Opcodes.LD_INT).addOperand(new ConstantIntegerOperand(node.elements.length)));
+    ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(lengthIdx, "short")));
+
+    let i = 0;
+    for (const element of node.elements) {
+        ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+        pipeNode(element, ctx);
+        const indexIdx = ctx.stringTable.registerString((i++).toString());
+        ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(indexIdx, "short")));
+    }
+}
+
 pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => {
     pipeNode(node.object, ctx);
     if (node.computed) {
-        throw "Computed property are not supported";
+        pipeNode(node.property, ctx);
+        ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
+        return;
     }
     if (node.property.type != "Identifier") {
         throw "Undefined property";
@@ -181,15 +199,16 @@ pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeConte
     }
 
     if (node.left.type == "MemberExpression") {
-        if (node.left.computed) {
-            throw "Computed property are not supported";
-        }
-        if (node.left.property.type != "Identifier") {
-            throw "Undefined property";
-        }
-
         pipeNode(node.right, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+
+        if (node.left.computed || node.left.property.type != "Identifier") {
+            pipeNode(node.left.object, ctx);
+            pipeNode(node.left.property, ctx);
+            ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CSTORE));
+            return;
+        }
+
         pipeNode(node.left.object, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.SWAP));
         const idx: number = ctx.stringTable.registerString(node.left.property.name);

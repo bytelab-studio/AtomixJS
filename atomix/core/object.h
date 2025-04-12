@@ -19,4 +19,6 @@ void object_free(JSObject* obj);
 
 JSObject* object_get_object_prototype();
 
+JSObject* object_get_array_prototype();
+
 #endif //OBJECT_H

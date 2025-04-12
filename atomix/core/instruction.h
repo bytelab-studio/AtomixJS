@@ -42,9 +42,12 @@ typedef enum
     OP_FUNC_DECL,
     OP_FUNC_DECL_E,
     OP_CALL,
+    OP_ARR_ALLOC,
     OP_OBJ_ALLOC,
     OP_OBJ_STORE,
     OP_OBJ_LOAD,
+    OP_OBJ_CLOAD,
+    OP_OBJ_CSTORE,
     OP_RETURN,
     OP_PUSH_SCOPE,
     OP_POP_SCOPE,
@@ -54,7 +57,7 @@ typedef enum
     OP_EXPORT
 } Opcode;
 
-#define OPCODE_LENGTH 45
+#define OPCODE_LENGTH 48
 
 typedef struct
 {

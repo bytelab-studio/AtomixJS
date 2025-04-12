@@ -111,7 +111,10 @@ void* load_instruction(const char* buff, size_t* start_position)
     case OP_LD_NULL:
     case OP_LD_TRUE:
     case OP_LD_FALSE:
+    case OP_ARR_ALLOC:
     case OP_OBJ_ALLOC:
+    case OP_OBJ_CLOAD:
+    case OP_OBJ_CSTORE:
     case OP_RETURN:
     case OP_PUSH_SCOPE:
     case OP_POP_SCOPE:

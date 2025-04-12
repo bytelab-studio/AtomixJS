@@ -1087,6 +1087,16 @@ void inst_call(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = return_value;
 }
 
+void inst_arr_alloc(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter >= STACK_SIZE)
+    {
+        PANIC("Stack overflow");
+    }
+    JSObject* obj = object_create_object(object_get_array_prototype());
+    vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
+}
+
 void inst_obj_alloc(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
@@ -1124,7 +1134,7 @@ void inst_obj_load(VM* vm, void* ptr)
     {
         PANIC("Stack underflow");
     }
-    JSValue obj = vm->stats.stack[--vm->stats.stack_counter];
+    JSValue obj = vm->stats.stack[vm->stats.stack_counter - 1];
     if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
     {
         PANIC("Target is not a object");
@@ -1133,8 +1143,48 @@ void inst_obj_load(VM* vm, void* ptr)
     JSObject* obj_ptr = obj.type == JS_FUNC
                             ? ((JSFunction*)obj.value.as_pointer)->base
                             : (JSObject*)obj.value.as_pointer;
-    vm->stats.stack[vm->stats.stack_counter++] = object_get_property(obj_ptr, key);
+    vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
     js_free(key);
+}
+
+void inst_obj_cload(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 2)
+    {
+        PANIC("Stack underflow");
+    }
+    JSValue value = vm->stats.stack[--vm->stats.stack_counter];
+    JSValue obj = vm->stats.stack[vm->stats.stack_counter - 1];
+    if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
+    {
+        PANIC("Target is not a object");
+    }
+    JSObject* obj_ptr = obj.type == JS_FUNC
+                            ? ((JSFunction*)obj.value.as_pointer)->base
+                            : obj.value.as_pointer;
+    char* key = value_to_string(&value);
+    vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
+    js_free(key);
+}
+
+void inst_obj_cstore(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 3)
+    {
+        PANIC("Stack underflow");
+    }
+    JSValue computed = vm->stats.stack[--vm->stats.stack_counter];
+    JSValue obj = vm->stats.stack[--vm->stats.stack_counter];
+    JSValue value = vm->stats.stack[--vm->stats.stack_counter];
+    if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
+    {
+        PANIC("Target is not a object");
+    }
+    char* key = value_to_string(&computed);
+    JSObject* obj_ptr = obj.type == JS_FUNC
+                            ? ((JSFunction*)obj.value.as_pointer)->base
+                            : (JSObject*)obj.value.as_pointer;
+    object_set_property(obj_ptr, key, value);
 }
 
 void inst_push_scope(VM* vm, void* ptr)
@@ -1236,9 +1286,12 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_FUNC_DECL] = inst_func_decl;
     vm.inst_set[OP_FUNC_DECL_E] = inst_func_decl;
     vm.inst_set[OP_CALL] = inst_call;
+    vm.inst_set[OP_ARR_ALLOC] = inst_arr_alloc;
     vm.inst_set[OP_OBJ_ALLOC] = inst_obj_alloc;
     vm.inst_set[OP_OBJ_STORE] = inst_obj_store;
     vm.inst_set[OP_OBJ_LOAD] = inst_obj_load;
+    vm.inst_set[OP_OBJ_CSTORE] = inst_obj_cstore;
+    vm.inst_set[OP_OBJ_CLOAD] = inst_obj_cload;
     vm.inst_set[OP_RETURN] = inst_nop;
     vm.inst_set[OP_PUSH_SCOPE] = inst_push_scope;
     vm.inst_set[OP_POP_SCOPE] = inst_pop_scope;

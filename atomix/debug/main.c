@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "allocator.h"
 #include "loader.h"
 #include "module.h"
 #include "execution.h"
