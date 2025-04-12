@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define JS_NaN 0.0 / 0.0
+#define JS_POS_INFINITY 1 / 0.0
+#define JS_NEG_INFINITY -1 / 0.0
 
 #define JS_VALUE_INT(x) ((JSValue){.type = JS_INTEGER, .value.as_int = x})
 #define JS_VALUE_DOUBLE(x) ((JSValue){.type = JS_DOUBLE, .value.as_double = x})
