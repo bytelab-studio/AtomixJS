@@ -37,7 +37,7 @@ function* pipeFiles(dir) {
     }
 }
 
-function runSubprocess(command, args) {
+function runSubprocess(command, args, identifier) {
     return new Promise((resolve, reject) => {
         const child = child_process.spawn(command, args, {encoding: "utf-8"});
 
@@ -51,7 +51,7 @@ function runSubprocess(command, args) {
 
         child.on("close", code => {
             if (code !== 0) {
-                return reject(new Error(`Process exited with code ${code}`));
+                return reject(new Error(`Process exited with code ${code}: ${identifier}`));
             }
             resolve(stdout);
         });
@@ -60,12 +60,12 @@ function runSubprocess(command, args) {
 
 async function compileProgram(test) {
     const outputFile = test + ".bin";
-    await runSubprocess("node", [COMPILER, test, outputFile]);
+    await runSubprocess("node", [COMPILER, test, outputFile], test);
     return outputFile;
 }
 
 async function runProgram(file) {
-    const testResult = await runSubprocess(VM_RUNNER, [file]);
+    const testResult = await runSubprocess(VM_RUNNER, [file], file);
     return testResult.replace(/\r\n/g, "\n");
 }
 
@@ -78,7 +78,7 @@ async function getSnapshot(test) {
         if (err.code !== "ENOENT") throw err;
     }
 
-    const output = await runSubprocess("node", [NODE_SUIT, test]);
+    const output = await runSubprocess("node", [NODE_SUIT, test], test);
 
     await fs.writeFile(file, output, "utf-8");
 
