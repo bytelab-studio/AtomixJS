@@ -190,15 +190,16 @@ pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeConte
     }
 
     if (node.left.type == "MemberExpression") {
-        if (node.left.computed) {
-            throw "Computed property are not supported";
-        }
-        if (node.left.property.type != "Identifier") {
-            throw "Undefined property";
-        }
-
         pipeNode(node.right, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+
+        if (node.left.computed || node.left.property.type != "Identifier") {
+            pipeNode(node.left.object, ctx);
+            pipeNode(node.left.property, ctx);
+            ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CSTORE));
+            return;
+        }
+
         pipeNode(node.left.object, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.SWAP));
         const idx: number = ctx.stringTable.registerString(node.left.property.name);
