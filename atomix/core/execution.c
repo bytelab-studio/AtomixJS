@@ -978,8 +978,10 @@ void inst_obj_load(VM* vm, void* ptr)
     js_free(key);
 }
 
-void inst_obj_cload(VM* vm, void* ptr) {
-    if (vm->stats.stack_counter < 2) {
+void inst_obj_cload(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 2)
+    {
         PANIC("Stack underflow");
     }
     JSValue value = vm->stats.stack[--vm->stats.stack_counter];
@@ -989,16 +991,11 @@ void inst_obj_cload(VM* vm, void* ptr) {
         PANIC("Target is not a object");
     }
     JSObject* obj_ptr = obj.type == JS_FUNC
-        ? ((JSFunction*)obj.value.as_pointer)->base
-        : obj.value.as_pointer;
-
-    char* key;
-    if (value.type == JS_STRING) {
-        key = value.value.as_pointer;
-    } else {
-        PANIC("Unexpected computed property type");
-    }
+                            ? ((JSFunction*)obj.value.as_pointer)->base
+                            : obj.value.as_pointer;
+    char* key = value_to_string(&value);
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
+    js_free(key);
 }
 
 void inst_push_scope(VM* vm, void* ptr)
