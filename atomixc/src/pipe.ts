@@ -134,6 +134,32 @@ pipe["BinaryExpression"] = (node: acorn.BinaryExpression, ctx: PipeContext) => {
     }
 }
 
+pipe["UnaryExpression"] = (node: acorn.UnaryExpression, ctx: PipeContext) => {
+    // TODO think about delete and '+' operator
+    pipeNode(node.argument, ctx);
+
+    switch(node.operator) {
+        case "-":
+            ctx.data.addInstruction(new Instruction(Opcodes.NEGATE));
+            break;
+        case "!":
+            ctx.data.addInstruction(new Instruction(Opcodes.NOT));
+            break;
+        case "~":
+            ctx.data.addInstruction(new Instruction(Opcodes.BINARY_NOT))
+            break;
+        case "typeof":
+            ctx.data.addInstruction(new Instruction(Opcodes.TYPEOF))
+            break;
+        case "void":
+            ctx.data.addInstruction(new Instruction(Opcodes.POP));
+            ctx.data.addInstruction(new Instruction(Opcodes.LD_UNDF));
+            break;
+        default:
+            throw "Unsupported operator " + node.operator;
+    }
+}
+
 pipe["CallExpression"] = (node: acorn.CallExpression, ctx: PipeContext) => {
     for (const argument of node.arguments.reverse()) {
         pipeNode(argument, ctx);

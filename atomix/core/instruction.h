@@ -26,6 +26,10 @@ typedef enum
     OP_BINARY_LSHFT,
     OP_BINARY_RSHFT,
     OP_BINARY_ZRSHFT,
+    OP_BINARY_NOT,
+    OP_NOT,
+    OP_NEGATE,
+    OP_TYPEOF,
     OP_TEQ,
     OP_NTEQ,
     OP_GT,
@@ -57,7 +61,7 @@ typedef enum
     OP_EXPORT
 } Opcode;
 
-#define OPCODE_LENGTH 48
+#define OPCODE_LENGTH 52
 
 typedef struct
 {

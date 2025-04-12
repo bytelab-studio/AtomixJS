@@ -130,13 +130,13 @@ void inst_minus(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
 
     // undefined or object or function - anything => NaN
-    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC || 
+    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC ||
         right.type == JS_UNDEFINED || right.type == JS_OBJECT || right.type == JS_FUNC)
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
@@ -174,16 +174,17 @@ void inst_minus(VM* vm, void* ptr)
     }
 }
 
-void inst_mul(VM* vm, void* ptr) {
+void inst_mul(VM* vm, void* ptr)
+{
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
 
     // undefined or object or function * anything => NaN
-    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC || 
+    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC ||
         right.type == JS_UNDEFINED || right.type == JS_OBJECT || right.type == JS_FUNC)
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
@@ -214,8 +215,8 @@ void inst_mul(VM* vm, void* ptr) {
 
         r = l * r;
         vm->stats.stack[vm->stats.stack_counter - 1] = r == (int)r
-            ? JS_VALUE_INT((int)r)
-            : JS_VALUE_DOUBLE(r);
+                                                           ? JS_VALUE_INT((int)r)
+                                                           : JS_VALUE_DOUBLE(r);
     }
     else
     {
@@ -223,16 +224,17 @@ void inst_mul(VM* vm, void* ptr) {
     }
 }
 
-void inst_div(VM* vm, void* ptr) {
+void inst_div(VM* vm, void* ptr)
+{
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
 
     // undefined or object or function / anything => NaN
-    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC || 
+    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC ||
         right.type == JS_UNDEFINED || right.type == JS_OBJECT || right.type == JS_FUNC || right.type == JS_NULL)
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
@@ -243,17 +245,17 @@ void inst_div(VM* vm, void* ptr) {
     if (left.type == JS_NULL)
     {
         left = JS_VALUE_DOUBLE(0);
-    } else if (left.type == JS_INTEGER || left.type == JS_BOOLEAN) {
-        left = JS_VALUE_DOUBLE(left.value.as_int);    
     }
-    if (right.type == JS_NULL)
+    else if (left.type == JS_INTEGER || left.type == JS_BOOLEAN)
     {
-        right = JS_VALUE_DOUBLE(0);
-    } else if (right.type == JS_INTEGER || right.type == JS_BOOLEAN) {
-        right = JS_VALUE_DOUBLE(right.value.as_int);    
+        left = JS_VALUE_DOUBLE(left.value.as_int);
     }
- 
-    
+    if (right.type == JS_INTEGER || right.type == JS_BOOLEAN)
+    {
+        right = JS_VALUE_DOUBLE(right.value.as_int);
+    }
+
+
     vm->stats.stack_counter--;
 
     if (left.type == JS_DOUBLE || right.type == JS_DOUBLE)
@@ -261,36 +263,40 @@ void inst_div(VM* vm, void* ptr) {
         double l = left.type == JS_DOUBLE ? left.value.as_double : (double)left.value.as_int;
         double r = right.type == JS_DOUBLE ? right.value.as_double : (double)right.value.as_int;
 
-        if (r == 0.0 && l == 0.0) {
+        if (r == 0.0 && l == 0.0)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
-            return;            
-        } else if (r == 0.0) {
+            return;
+        }
+        else if (r == 0.0)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(l > 0 ? JS_POS_INFINITY : JS_NEG_INFINITY);
-            return;            
+            return;
         }
 
 
         r = l / r;
-        vm->stats.stack[vm->stats.stack_counter -1] = r == (int)r
-            ? JS_VALUE_INT((int)r)
-            : JS_VALUE_DOUBLE(r);
+        vm->stats.stack[vm->stats.stack_counter - 1] = r == (int)r
+                                                           ? JS_VALUE_INT((int)r)
+                                                           : JS_VALUE_DOUBLE(r);
     }
     else
     {
         PANIC("Unsupported operation");
-    }    
+    }
 }
 
-void inst_mod(VM* vm, void* ptr) {
+void inst_mod(VM* vm, void* ptr)
+{
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
 
     // undefined or object or function % anything => NaN
-    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC || 
+    if (left.type == JS_UNDEFINED || left.type == JS_OBJECT || left.type == JS_FUNC ||
         right.type == JS_UNDEFINED || right.type == JS_OBJECT || right.type == JS_FUNC || right.type == JS_NULL)
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
@@ -302,18 +308,19 @@ void inst_mod(VM* vm, void* ptr) {
     {
         left.type = JS_INTEGER;
     }
-    if (right.type == JS_BOOLEAN) 
+    if (right.type == JS_BOOLEAN)
     {
         right.type = JS_INTEGER;
     }
-    
+
     vm->stats.stack_counter--;
 
     if (left.type == JS_INTEGER && right.type == JS_INTEGER)
     {
-        if (right.value.as_int == 0) {
+        if (right.value.as_int == 0)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
-            return;            
+            return;
         }
 
         vm->stats.stack[vm->stats.stack_counter - 1].type = JS_INTEGER;
@@ -324,27 +331,28 @@ void inst_mod(VM* vm, void* ptr) {
         double l = left.type == JS_DOUBLE ? left.value.as_double : (double)left.value.as_int;
         double r = right.type == JS_DOUBLE ? right.value.as_double : (double)right.value.as_int;
 
-        if (r == 0.0) {
+        if (r == 0.0)
+        {
             vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
-            return;            
+            return;
         }
 
         r = fmod(l, r);
         vm->stats.stack[vm->stats.stack_counter - 1] = r == (int)r
-            ? JS_VALUE_INT((int)r)
-            : JS_VALUE_DOUBLE(r);
+                                                           ? JS_VALUE_INT((int)r)
+                                                           : JS_VALUE_DOUBLE(r);
     }
     else
     {
         PANIC("Unsupported operation");
-    }        
+    }
 }
 
 void inst_binary_and(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -372,7 +380,7 @@ void inst_binary_or(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -420,7 +428,7 @@ void inst_binary_xor(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -468,7 +476,7 @@ void inst_binary_lshft(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -503,7 +511,7 @@ void inst_binary_rshft(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -538,7 +546,7 @@ void inst_binary_zrshft(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -570,12 +578,113 @@ void inst_binary_zrshft(VM* vm, void* ptr)
         (int)((unsigned int)leftValue >> (unsigned int)rightValue));
 }
 
+void inst_binary_not(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 1)
+    {
+        PANIC("Stack underflow");
+    }
+    JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
+
+    if (right.type == JS_UNDEFINED || right.type == JS_OBJECT || right.type == JS_FUNC)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(-1);
+        return;
+    }
+
+    if (right.type == JS_BOOLEAN || right.type == JS_NULL)
+    {
+        right.type = JS_INTEGER;
+    }
+    else if (right.type == JS_DOUBLE)
+    {
+        right = JS_VALUE_INT((int)right.value.as_double);
+    }
+
+    vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(~right.value.as_int);
+}
+
+void inst_not(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 1)
+    {
+        PANIC("Stack underflow");
+    }
+    vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(
+        value_is_falsy(&vm->stats.stack[vm->stats.stack_counter - 1]) ? 1 : 0
+    );
+}
+
+void inst_negate(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 1)
+    {
+        PANIC("Stack underflow");
+    }
+
+    JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
+
+    if (right.type == JS_BOOLEAN || right.type == JS_NULL)
+    {
+        right.type = JS_INTEGER;
+    }
+    else if (right.type == JS_UNDEFINED || right.type == JS_OBJECT || right.type == JS_FUNC)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(JS_NaN);
+        return;
+    }
+
+    if (right.type == JS_INTEGER)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(-right.value.as_int);
+        return;
+    }
+    if (right.type == JS_DOUBLE)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_DOUBLE(-right.value.as_double);
+        return;
+    }
+    PANIC("Unknown operand type");
+}
+
+void inst_typeof(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter < 1)
+    {
+        PANIC("Stack underflow");
+    }
+
+    switch (vm->stats.stack[vm->stats.stack_counter - 1].type)
+    {
+    case JS_INTEGER:
+    case JS_DOUBLE:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("number"));
+        return;
+    case JS_STRING:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("string"));
+        return;
+    case JS_OBJECT:
+    case JS_NULL:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("object"));
+        return;
+    case JS_FUNC:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("function"));
+        return;
+    case JS_UNDEFINED:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("undefined"));
+        return;
+    case JS_BOOLEAN:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("boolean"));
+        return;
+    }
+    PANIC("Unknown operand type");
+}
 
 void inst_teq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -633,7 +742,7 @@ void inst_nteq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -691,7 +800,7 @@ void inst_gt(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -751,7 +860,7 @@ void inst_geq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -811,7 +920,7 @@ void inst_lt(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -871,7 +980,7 @@ void inst_leq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
-        PANIC("Stack overflow");
+        PANIC("Stack underflow");
     }
     JSValue left = vm->stats.stack[vm->stats.stack_counter - 2];
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
@@ -1270,6 +1379,10 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_BINARY_LSHFT] = inst_binary_lshft;
     vm.inst_set[OP_BINARY_RSHFT] = inst_binary_rshft;
     vm.inst_set[OP_BINARY_ZRSHFT] = inst_binary_zrshft;
+    vm.inst_set[OP_BINARY_NOT] = inst_binary_not;
+    vm.inst_set[OP_NOT] = inst_not;
+    vm.inst_set[OP_NEGATE] = inst_negate;
+    vm.inst_set[OP_TYPEOF] = inst_typeof;
     vm.inst_set[OP_TEQ] = inst_teq;
     vm.inst_set[OP_NTEQ] = inst_nteq;
     vm.inst_set[OP_GT] = inst_gt;
