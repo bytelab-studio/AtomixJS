@@ -98,6 +98,10 @@ void* load_instruction(const char* buff, size_t* start_position)
     case OP_BINARY_LSHFT:
     case OP_BINARY_RSHFT:
     case OP_BINARY_ZRSHFT:
+    case OP_BINARY_NOT:
+    case OP_NOT:
+    case OP_NEGATE:
+    case OP_TYPEOF:
     case OP_TEQ:
     case OP_NTEQ:
     case OP_GT:

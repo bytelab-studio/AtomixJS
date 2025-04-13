@@ -1,0 +1,1 @@
+print(void 0.0);
