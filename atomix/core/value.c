@@ -6,6 +6,7 @@
 #include "panic.h"
 #include "allocator.h"
 #include "api.h"
+#include "object.h"
 
 int value_is_falsy(JSValue* value)
 {
@@ -96,4 +97,28 @@ char* value_to_string(JSValue* value)
     }
 
     PANIC("Undefined JSValue Type");
+}
+
+int value_is_array(JSValue* value)
+{
+    if (value->type != JS_OBJECT)
+    {
+        return 0;
+    }
+
+    JSObject* object_prototype = object_get_object_prototype();
+    JSObject* array_prototype = object_get_array_prototype();
+
+    JSObject* object = value->value.as_pointer;
+    JSObject* prototype = object->prototype;
+    while (prototype != object_prototype)
+    {
+        if (prototype == array_prototype)
+        {
+            return 1;
+        }
+        prototype = prototype->prototype;
+    }
+
+    return 0;
 }
