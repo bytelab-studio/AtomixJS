@@ -1,4 +1,5 @@
 import * as acorn from "acorn";
+import * as escodegen from "escodegen";
 import * as fs from "fs";
 import {StringTableBuilder} from "./format/string-table";
 import {DataSectionBuilder} from "./format/data";
@@ -11,11 +12,17 @@ import * as transform from "./transform";
 export function parseFile(input: string, output: string): void {
     const content = fs.readFileSync(input, "utf-8");
     const program: acorn.Program = acorn.parse(content, {
-        ecmaVersion: 6,
+        ecmaVersion: "latest",
         sourceType: "module"
     });
 
     transform.transformProgram(program);
+
+    console.log()
+    console.log()
+    console.log(escodegen.generate(program));
+    console.log()
+    console.log()
 
     const stringTable: StringTableBuilder = new StringTableBuilder();
     const dataSection: DataSectionBuilder = new DataSectionBuilder();

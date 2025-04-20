@@ -36,6 +36,9 @@ function transformNode(node: acorn.Node): acorn.Node {
             if (node.type == "ForStatement") {
                 return transformForStatement(node as acorn.ForStatement);
             }
+            if (node.type == "ClassDeclaration") {
+                return transformClassDeclaration(node as acorn.ClassDeclaration);
+            }
             return node;
         },
         leave(node) {
@@ -150,4 +153,250 @@ function transformForStatement(node: acorn.ForStatement): acorn.Node {
 
 
     return packNodes(nodes);
+}
+
+function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
+    /*
+     * Before:
+     * class Foo {
+     *      constructor(bar) {
+     *          this.bar = bar;
+     *      }
+     *      myMethod() {
+     *          return this.bar;
+     *      }
+     *
+     *      static foo = 20;
+     *      static myStaticMethod() {
+     *          return Foo.foo;
+     *      }
+     * }
+     *
+     * After:
+     * const Foo = (function() {
+     *      function Foo(bar) {
+     *          this.myMethod = function() {
+     *              return this.bar;
+     *          }
+     *
+     *          this.bar = bar;
+     *      }
+     *
+     *      Foo.myStaticMethod = function() {
+     *          return Foo.foo;
+     *      }
+     *      Foo.foo = 20;
+     *
+     *      return Foo;
+     * })();
+     */
+    const constructorMethod: acorn.MethodDefinition | undefined = node.body.body.find(node =>
+        node.type == "MethodDefinition" &&
+        node.kind == "constructor") as acorn.MethodDefinition | undefined;
+
+    const methods: acorn.MethodDefinition[] = node.body.body.filter(node => node.type == "MethodDefinition" && node.kind == "method" && !node.static) as acorn.MethodDefinition[];
+    const staticMethods: acorn.MethodDefinition[] = node.body.body.filter(node => node.type == "MethodDefinition" && node.kind == "method" && node.static) as acorn.MethodDefinition[];
+    const properties = node.body.body.filter(node => node.type == "PropertyDefinition" && !node.static && node.value) as acorn.PropertyDefinition[];
+    const staticProperties = node.body.body.filter(node => node.type == "PropertyDefinition" && node.static && node.value) as acorn.PropertyDefinition[];
+
+    const classDeclaration: acorn.CallExpression = (<acorn.CallExpression>{
+        type: "CallExpression",
+        callee: (<acorn.FunctionExpression>{
+            type: "FunctionExpression",
+            id: undefined,
+            params: [],
+            body: (<acorn.BlockStatement>{
+                type: "BlockStatement",
+                body: [
+                    (<acorn.FunctionDeclaration>{
+                        type: "FunctionDeclaration",
+                        id: node.id,
+                        params: constructorMethod ? constructorMethod.value.params : [],
+                        body: (<acorn.BlockStatement>{
+                            type: "BlockStatement",
+                            body: [
+                                ...methods.map(method => (<acorn.ExpressionStatement>{
+                                    type: "ExpressionStatement",
+                                    expression: (<acorn.AssignmentExpression>{
+                                        type: "AssignmentExpression",
+                                        left: (<acorn.MemberExpression>{
+                                            type: "MemberExpression",
+                                            object: (<acorn.ThisExpression>{
+                                                type: "ThisExpression",
+                                                start: node.start,
+                                                end: node.end,
+                                                loc: node.loc,
+                                                range: node.range
+                                            }),
+                                            property: method.key,
+                                            computed: method.key.type != "Identifier",
+                                            optional: false,
+                                            start: node.start,
+                                            end: node.end,
+                                            loc: node.loc,
+                                            range: node.range
+                                        }),
+                                        operator: "=",
+                                        right: method.value,
+                                        start: node.start,
+                                        end: node.end,
+                                        loc: node.loc,
+                                        range: node.range
+                                    }),
+                                    start: node.start,
+                                    end: node.end,
+                                    loc: node.loc,
+                                    range: node.range
+                                })),
+                                ...properties.map(property => (<acorn.ExpressionStatement>{
+                                    type: "ExpressionStatement",
+                                    expression: (<acorn.AssignmentExpression>{
+                                        type: "AssignmentExpression",
+                                        left: (<acorn.MemberExpression>{
+                                            type: "MemberExpression",
+                                            object: (<acorn.ThisExpression>{
+                                                type: "ThisExpression",
+                                                start: node.start,
+                                                end: node.end,
+                                                loc: node.loc,
+                                                range: node.range
+                                            }),
+                                            property: property.key,
+                                            computed: property.key.type != "Identifier",
+                                            optional: false,
+                                            start: node.start,
+                                            end: node.end,
+                                            loc: node.loc,
+                                            range: node.range
+                                        }),
+                                        operator: "=",
+                                        right: property.value,
+                                        start: node.start,
+                                        end: node.end,
+                                        loc: node.loc,
+                                        range: node.range
+                                    }),
+                                    start: node.start,
+                                    end: node.end,
+                                    loc: node.loc,
+                                    range: node.range
+                                })),
+                                ...(constructorMethod ? constructorMethod.value.body.body : []),
+                            ],
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        expression: false,
+                        async: false,
+                        generator: false,
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    }),
+                    ...staticMethods.map(method => (<acorn.ExpressionStatement>{
+                        type: "ExpressionStatement",
+                        expression: (<acorn.AssignmentExpression>{
+                            type: "AssignmentExpression",
+                            left: (<acorn.MemberExpression>{
+                                type: "MemberExpression",
+                                object: node.id,
+                                property: method.key,
+                                computed: method.key.type != "Identifier",
+                                optional: false,
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            }),
+                            operator: "=",
+                            right: method.value,
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    })),
+                    ...staticProperties.map(property => (<acorn.ExpressionStatement>{
+                        type: "ExpressionStatement",
+                        expression: (<acorn.AssignmentExpression>{
+                            type: "AssignmentExpression",
+                            left: (<acorn.MemberExpression>{
+                                type: "MemberExpression",
+                                object: node.id,
+                                property: property.key,
+                                computed: property.key.type != "Identifier",
+                                optional: false,
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            }),
+                            operator: "=",
+                            right: property.value,
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    })),
+                    (<acorn.ReturnStatement>{
+                        type: "ReturnStatement",
+                        argument: node.id,
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    })
+                ],
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            }),
+            expression: false,
+            async: false,
+            generator: false,
+            start: node.start,
+            end: node.end,
+            loc: node.loc,
+            range: node.range
+        }),
+        arguments: [],
+        optional: false,
+        start: node.start,
+        end: node.end,
+        loc: node.loc,
+        range: node.range
+    });
+
+    return (<acorn.VariableDeclaration>{
+        type: "VariableDeclaration",
+        kind: "const",
+        declarations: [
+            (<acorn.VariableDeclarator>{
+                type: "VariableDeclarator",
+                id: node.id,
+                init: classDeclaration,
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            })
+        ],
+        start: node.start,
+        end: node.end,
+        loc: node.loc,
+        range: node.range
+    });
 }
