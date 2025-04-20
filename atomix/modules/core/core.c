@@ -2,6 +2,7 @@
 #include <wchar.h>
 
 #include "api.h"
+#include "execution.h"
 #include "function.h"
 
 JSValue print(VM* vm, JSValue* args, size_t argc)
@@ -67,6 +68,44 @@ JSValue module_get_export_obj(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_OBJECT(vm->module.exports);
 }
 
+JSValue object(VM* vm, JSValue* args, size_t argc)
+{
+    // TODO implement
+    return JS_VALUE_UNDEFINED;
+}
+
+JSValue instantiate(VM* vm, JSValue* args, size_t argc)
+{
+    if (argc == 0)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSValue constructor_wrapped = args[argc - 1];
+    if (constructor_wrapped.type != JS_FUNC)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+    JSFunction* constructor = constructor_wrapped.value.as_pointer;
+
+    JSObject* obj = object_create_object(constructor->base->prototype);
+    object_set_property(obj, init_string("constructor"), constructor_wrapped);
+    scope_declare(constructor->scope, init_string("this"), JS_VALUE_OBJECT(obj));
+    for (size_t i = 0; i < argc - 1; i++)
+    {
+        vm->stats.stack[vm->stats.stack_counter++] = args[i];
+    }
+    JSValue return_value = vm_exec_function(vm, constructor);
+    if (return_value.type == JS_OBJECT)
+    {
+        return return_value;
+    }
+
+    return JS_VALUE_OBJECT(obj);
+}
+
 JSValue array(VM* vm, JSValue* args, size_t argc)
 {
     JSObject* arr = object_create_object(object_get_array_prototype());
@@ -119,9 +158,11 @@ JSValue is_array(VM* vm, JSValue* args, size_t argc)
 
 void core_init(Scope* scope)
 {
+    // Helper
     JSFunction* _print = function_create_native_function(print);
     scope_declare(scope, init_string("print"), JS_VALUE_FUNCTION(_print));
 
+    // Module
     JSObject* _module = object_create_object(object_get_object_prototype());
 
     JSFunction* _module_get_export_obj = function_create_native_function(module_get_export_obj);
@@ -129,6 +170,15 @@ void core_init(Scope* scope)
 
     scope_declare(scope, init_string("module"), JS_VALUE_OBJECT(_module));
 
+    // Object
+    JSFunction* _object = function_create_native_function(object);
+
+    JSFunction* _instantiate = function_create_native_function(instantiate);
+    object_set_property(_object->base, init_string("instantiate"), JS_VALUE_FUNCTION(_instantiate));
+
+    scope_declare(scope, init_string("Object"), JS_VALUE_FUNCTION(_object));
+
+    // Array
     JSFunction* _array = function_create_native_function(array);
     _array->base->prototype = object_get_array_prototype();
 

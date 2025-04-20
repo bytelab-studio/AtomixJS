@@ -15,6 +15,7 @@ typedef enum
     OP_LD_NULL,
     OP_LD_TRUE,
     OP_LD_FALSE,
+    OP_LD_THIS,
     OP_ADD,
     OP_MINUS,
     OP_MUL,
@@ -61,7 +62,7 @@ typedef enum
     OP_EXPORT
 } Opcode;
 
-#define OPCODE_LENGTH 52
+#define OPCODE_LENGTH 53
 
 typedef struct
 {

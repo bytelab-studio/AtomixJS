@@ -13,7 +13,7 @@ globalThis.print = function (...args) {
                 process.stdout.write("\n");
                 break;
             case "string":
-                process.stdout.write(arg.padEnd(arg.indexOf(".") + 7, "0"));
+                process.stdout.write(arg);
                 process.stdout.write("\n");
                 break;
             case "object":
@@ -39,6 +39,11 @@ globalThis.print = function (...args) {
         }
     }
 }
+
+Object.instantiate = function (constructor, ...args) {
+    return new constructor(...args);
+}
+
 if (process.argv.length < 2) {
     throw "Missing argument";
 }

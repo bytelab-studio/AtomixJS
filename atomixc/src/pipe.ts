@@ -69,6 +69,10 @@ pipe["Identifier"] = (node: acorn.Identifier, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
+pipe["ThisExpression"] = (node: acorn.ThisExpression, ctx: PipeContext) => {
+    ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
+}
+
 pipe["ExpressionStatement"] = (node: acorn.ExpressionStatement, ctx: PipeContext) => {
     pipeNode(node.expression, ctx);
     ctx.data.addInstruction(new Instruction(Opcodes.POP));
@@ -138,7 +142,7 @@ pipe["UnaryExpression"] = (node: acorn.UnaryExpression, ctx: PipeContext) => {
     // TODO think about delete and '+' operator
     pipeNode(node.argument, ctx);
 
-    switch(node.operator) {
+    switch (node.operator) {
         case "-":
             ctx.data.addInstruction(new Instruction(Opcodes.NEGATE));
             break;

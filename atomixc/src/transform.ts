@@ -30,6 +30,9 @@ function transformNode(node: acorn.Node): acorn.Node {
             if (node.type == "AssignmentExpression") {
                 return transformAssignmentExpression(node as acorn.AssignmentExpression);
             }
+            if (node.type == "NewExpression") {
+                return transformNewExpression(node as acorn.NewExpression);
+            }
             if (node.type == "ForStatement") {
                 return transformForStatement(node as acorn.ForStatement);
             }
@@ -68,7 +71,52 @@ function transformAssignmentExpression(node: acorn.AssignmentExpression): acorn.
     });
 }
 
-function transformForStatement(node: acorn.ForStatement) {
+function transformNewExpression(node: acorn.NewExpression): acorn.Node {
+    /*
+        Before:
+        new Person(1, 2, 3)
+
+        After:
+        Object.instantiate(Person, 1, 2, 3)
+     */
+    return (<acorn.CallExpression>{
+        type: "CallExpression",
+        callee: (<acorn.MemberExpression>{
+            type: "MemberExpression",
+            computed: false,
+            object: (<acorn.Identifier>{
+                type: "Identifier",
+                name: "Object",
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            }),
+            property: (<acorn.Identifier>{
+                type: "Identifier",
+                name: "instantiate",
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            }),
+            start: node.start,
+            end: node.end,
+            loc: node.loc,
+            range: node.range
+        }),
+        arguments: [
+            node.callee,
+            ...node.arguments
+        ],
+        start: node.start,
+        end: node.end,
+        loc: node.loc,
+        range: node.range
+    });
+}
+
+function transformForStatement(node: acorn.ForStatement): acorn.Node {
     const nodes: acorn.Node[] = [];
     if (node.init) {
         nodes.push(node.init);

@@ -77,6 +77,15 @@ void inst_ld_boolean(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_BOOL(OPCODE_OF(ptr) == OP_LD_TRUE);
 }
 
+void inst_ld_this(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter >= STACK_SIZE)
+    {
+        PANIC("Stack overflow");
+    }
+    vm->stats.stack[vm->stats.stack_counter++] = scope_get(vm->scope, "this");
+}
+
 void inst_add(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
@@ -1368,6 +1377,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_LD_NULL] = inst_ld_null;
     vm.inst_set[OP_LD_TRUE] = inst_ld_boolean;
     vm.inst_set[OP_LD_FALSE] = inst_ld_boolean;
+    vm.inst_set[OP_LD_THIS] = inst_ld_this;
     vm.inst_set[OP_ADD] = inst_add;
     vm.inst_set[OP_MINUS] = inst_minus;
     vm.inst_set[OP_MUL] = inst_mul;

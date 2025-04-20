@@ -16,6 +16,29 @@ declare global {
     }
 
     declare const module: Module;
+
+    interface Object {
+        /**
+         * Instantiate a new object of the given constructor.
+         * @param constructor - The constructor of the class to instantiate.
+         * @param args - The parameters passed to the constructor function.
+         */
+        instantiate<T extends object>(constructor: Function, ...args: any[]): T;
+    }
+
+    declare const Object: Object;
+
+    interface Array<T> {
+        new <T>(length: number): Array<T>;
+        new <T>(...items: T[]): Array<T>;
+        <T>(length: number): Array<T>;
+        <T>(...items: T[]): Array<T>;
+        readonly length: number;
+        [n: number]: T;
+        isArray(x: any): boolean;
+    }
+
+    declare const Array: Array;
 }
 
 export {}
