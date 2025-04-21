@@ -12,6 +12,10 @@ class Foo {
     static myStaticMethod() {
         return Foo.foo;
     }
+
+    static {
+        print(Foo.foo);
+    }
 }
 
 const foo = new Foo(10);

@@ -1,5 +1,6 @@
 import * as acorn from "acorn";
 import * as esttraverse from "estraverse";
+import {StaticBlock} from "acorn";
 
 export function transformProgram(program: acorn.Program): void {
     if (!Array.isArray(program.body)) {
@@ -198,6 +199,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
     const staticMethods: acorn.MethodDefinition[] = node.body.body.filter(node => node.type == "MethodDefinition" && node.kind == "method" && node.static) as acorn.MethodDefinition[];
     const properties = node.body.body.filter(node => node.type == "PropertyDefinition" && !node.static && node.value) as acorn.PropertyDefinition[];
     const staticProperties = node.body.body.filter(node => node.type == "PropertyDefinition" && node.static && node.value) as acorn.PropertyDefinition[];
+    const staticBlocks: StaticBlock[] = node.body.body.filter(node => node.type == "StaticBlock");
 
     const classDeclaration: acorn.CallExpression = (<acorn.CallExpression>{
         type: "CallExpression",
@@ -350,6 +352,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                         loc: node.loc,
                         range: node.range
                     })),
+                    ...staticBlocks.map(node => node.body).flat(),
                     (<acorn.ReturnStatement>{
                         type: "ReturnStatement",
                         argument: node.id,
