@@ -176,18 +176,15 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
      * After:
      * const Foo = (function() {
      *      function Foo(bar) {
-     *          this.myMethod = function() {
-     *              return this.bar;
-     *          }
-     *
      *          this.bar = bar;
      *      }
-     *
+     *      Foo.prototype.myMethod() {
+     *          return this.bar;
+     *      }
      *      Foo.myStaticMethod = function() {
      *          return Foo.foo;
      *      }
      *      Foo.foo = 20;
-     *
      *      return Foo;
      * })();
      */
@@ -217,39 +214,6 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                         body: (<acorn.BlockStatement>{
                             type: "BlockStatement",
                             body: [
-                                ...methods.map(method => (<acorn.ExpressionStatement>{
-                                    type: "ExpressionStatement",
-                                    expression: (<acorn.AssignmentExpression>{
-                                        type: "AssignmentExpression",
-                                        left: (<acorn.MemberExpression>{
-                                            type: "MemberExpression",
-                                            object: (<acorn.ThisExpression>{
-                                                type: "ThisExpression",
-                                                start: node.start,
-                                                end: node.end,
-                                                loc: node.loc,
-                                                range: node.range
-                                            }),
-                                            property: method.key,
-                                            computed: method.key.type != "Identifier",
-                                            optional: false,
-                                            start: node.start,
-                                            end: node.end,
-                                            loc: node.loc,
-                                            range: node.range
-                                        }),
-                                        operator: "=",
-                                        right: method.value,
-                                        start: node.start,
-                                        end: node.end,
-                                        loc: node.loc,
-                                        range: node.range
-                                    }),
-                                    start: node.start,
-                                    end: node.end,
-                                    loc: node.loc,
-                                    range: node.range
-                                })),
                                 ...properties.map(property => (<acorn.ExpressionStatement>{
                                     type: "ExpressionStatement",
                                     expression: (<acorn.AssignmentExpression>{
@@ -298,6 +262,50 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                         loc: node.loc,
                         range: node.range
                     }),
+                    ...methods.map(method => (<acorn.ExpressionStatement>{
+                        type: "ExpressionStatement",
+                        expression: (<acorn.AssignmentExpression>{
+                            type: "AssignmentExpression",
+                            left: (<acorn.MemberExpression>{
+                                type: "MemberExpression",
+                                object: (<acorn.MemberExpression>{
+                                    type: "MemberExpression",
+                                    object: node.id,
+                                    property: (<acorn.Identifier>{
+                                        type: "Identifier",
+                                        name: "prototype",    
+                                        start: node.start,
+                                        end: node.end,
+                                        loc: node.loc,
+                                        range: node.range
+                                    }),
+                                    computed: false,
+                                    optional: false,
+                                    start: node.start,
+                                    end: node.end,
+                                    loc: node.loc,
+                                    range: node.range
+                                }),
+                                property: method.key,
+                                computed: method.key.type != "Identifier",
+                                optional: false,
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            }),
+                            operator: "=",
+                            right: method.value,
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    })),
                     ...staticMethods.map(method => (<acorn.ExpressionStatement>{
                         type: "ExpressionStatement",
                         expression: (<acorn.AssignmentExpression>{

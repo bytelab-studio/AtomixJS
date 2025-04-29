@@ -1,5 +1,5 @@
+#include <string.h>
 #include "object.h"
-
 #include "allocator.h"
 
 #define OBJECT_BUCKET_SIZE 16
@@ -19,6 +19,11 @@ void object_set_property(JSObject* obj, char* key, JSValue value)
 
 JSValue object_get_property(JSObject* obj, char* key)
 {
+    if (strcmp(key, "prototype") == 0) 
+    {
+        return JS_VALUE_OBJECT(obj->prototype);
+    }
+
     JSValue* value = dict_get(obj->properties, key);
     if (value)
     {
