@@ -1,16 +1,17 @@
 #include "api.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "allocator.h"
 
 #ifdef _WIN64
 
-__declspec(allocate(MOD_SECTION"$u"))
-size_t __start_mod_init = 0;
+__attribute__((section(MOD_SECTION"$a")))
+void* __start_mod_init = NULL;
 
-__declspec(allocate(MOD_SECTION"$u"))
-size_t __stop_mod_init = 0;
+__attribute__((section(MOD_SECTION"$z")))
+void* __stop_mod_init = NULL;
 
 #else
 
@@ -21,7 +22,10 @@ extern const module_init __stop_mod_init;
 
 void bind_modules(Scope* scope)
 {
-    for (module_init* module_init = &__start_mod_init; module_init < &__stop_mod_init; module_init++)
+    module_init* start_list = (void*)&__start_mod_init;
+    module_init* end_list = (void*)&__stop_mod_init;
+
+    for (module_init* module_init = start_list; module_init < end_list; module_init++)
     {
         if (*module_init)
         {
