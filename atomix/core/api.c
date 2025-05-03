@@ -4,9 +4,20 @@
 
 #include "allocator.h"
 
-extern module_init __start_mod_init;
-extern module_init __stop_mod_init;
+#ifdef _WIN64
 
+__declspec(allocate(MOD_SECTION"$u"))
+size_t __start_mod_init = 0;
+
+__declspec(allocate(MOD_SECTION"$u"))
+size_t __stop_mod_init = 0;
+
+#else
+
+extern const module_init __start_mod_init;
+extern const module_init __stop_mod_init;
+
+#endif
 
 void bind_modules(Scope* scope)
 {

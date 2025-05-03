@@ -60,7 +60,7 @@ function runSubprocess(command, args, identifier) {
 
 async function compileProgram(test) {
     const outputFile = test + ".bin";
-    await runSubprocess("node", [COMPILER, test, outputFile], test);
+    await runSubprocess("node", [COMPILER, "compiler", "compile", test, "-o", outputFile, "-r", "."], test);
     return outputFile;
 }
 

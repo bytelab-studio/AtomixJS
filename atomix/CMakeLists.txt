@@ -3,9 +3,6 @@ project(atomix C)
 
 set(CMAKE_C_STANDARD 99)
 
-# Module List
-option(MOD_CORE, "Includes core module" OFF)
-
 file(GLOB MODULE_DIRS RELATIVE ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/modules/*)
 
 set(DEBUG_MODULE_TO_LINK, "")
