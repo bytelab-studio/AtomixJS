@@ -17,6 +17,15 @@ class Gateway {
     public readonly platform: EnginePlatform;
     public readonly architecture: EngineArchitecture;
 
+    public get CC_BASE_FLAGS(): string[] {
+        const ADDITIONAL_FLAGS: string[] = [];
+        if (this.platform == EnginePlatform.LINUX) {
+            ADDITIONAL_FLAGS.push("-Wl,-T=\"" + path.join(ENGINE_BASE, "atomix.ld") + "\"");
+        }
+
+        return CC_BASE_FLAGS.concat(ADDITIONAL_FLAGS);
+    }
+
     constructor(platform: EnginePlatform, architecture: EngineArchitecture) {
         this.platform = platform;
         this.architecture = architecture;
@@ -77,7 +86,7 @@ class Compiler {
     }
 
     public compile(input: string, output: string, args: string[]): void {
-        const execString: string = [...CC, ...CC_BASE_FLAGS, "-c", input, "-o", output, ...args, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
+        const execString: string = [...CC, ...this.info.CC_BASE_FLAGS, "-c", input, "-o", output, ...args, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
 
         child_process.execSync(execString, {
             encoding: "utf-8"
@@ -85,7 +94,7 @@ class Compiler {
     }
 
     public link(args: string[], output: string): void {
-        const execString: string = [...CC, ...CC_BASE_FLAGS, ...args, "-o", output, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
+        const execString: string = [...CC, ...this.info.CC_BASE_FLAGS, ...args, "-o", output, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
 
         child_process.execSync(execString, {
             encoding: "utf-8"
