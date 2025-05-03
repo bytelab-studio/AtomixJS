@@ -34,11 +34,17 @@ JSModule module_load_from_file(const char* filename)
     return module;
 }
 
-#define READ_Ux(buff, position, cast, increment) *((cast*)(buff + (position += increment) - increment))
-#define READ_U16(buff, position) READ_Ux(buff, position, uint16_t, 2)
-#define READ_U32(buff, position) READ_Ux(buff, position, uint32_t, 4)
-#define READ_I32(buff, position) READ_Ux(buff, position, int32_t, 4)
-#define READ_DOUBLE(buff, position) READ_Ux(buff, position, double, 8)
+#define READ_BLOCK(buff, position, offset, shift) (((uint8_t)buff[position - offset]) << shift)
+#define READ_U16(buff, position) (position += 2, (uint16_t)(READ_BLOCK(buff, position, 1, 8) | READ_BLOCK(buff, position, 2, 0)))
+#define READ_U32(buff, position) (position += 4, (uint32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
+#define READ_I32(buff, position) (position += 4, (int32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
+
+#define READ_DOUBLE(buff, position) ({          \
+    double _val;                                \
+    memcpy(&_val, buff + position, 8);          \
+    position += 8;                              \
+    _val;                                       \
+})
 
 StringTable load_string_table(const char* buff)
 {
