@@ -67,7 +67,7 @@ jobs:
         id: set-archive-info
         run: |
           NAME="zig-${{ matrix.platform }}-${{ matrix.arch }}"
-          PATH="zig"
+          PATH="zig.zip"
           
           echo "name=$NAME" >> $GITHUB_OUTPUT
           echo "path=$PATH" >> $GITHUB_OUTPUT
@@ -86,7 +86,7 @@ jobs:
         run: |
           ls
           mkdir -p ./__tmp
-          unzip "${{ steps.set-archive-info.outputs.path }}" -d .
+          unzip "./${{ steps.set-archive-info.outputs.path }}" -d .
           unzip "zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -d __tmp
           shopt -s dotglob
           mv ./__tmp/*/* ./__dist/zig/
@@ -96,7 +96,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           ls
-          unzip "${{ steps.set-archive-info.outputs.path }}" -d .
+          unzip "./${{ steps.set-archive-info.outputs.path }}" -d .
           tar --strip-components=1 -xf "zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -C ./__dist/zig
 
       - name: Build atomixc
