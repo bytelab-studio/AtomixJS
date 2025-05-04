@@ -32,7 +32,7 @@ jobs:
               PLATFORM="windows"
               ;;
           esac
-          case "${{ matrix.arch }}
+          case "${{ matrix.arch }}" in
             x64) 
               ARCH="x86_64" 
               ;;
