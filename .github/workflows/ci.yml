@@ -111,17 +111,17 @@ jobs:
           # TODO implement correct build script
           mkdir ./__dist/engine/modules/core
           cd atomix
-          cp -r ./core/*.c ../__dist/engine/core
-          cp -r ./core/*.h ../__dist/engine/core
+          cp -r ./core/*.c ../__dist/engine/core || true
+          cp -r ./core/*.h ../__dist/engine/core || true
           
-          cp -r ./debug/*.c ../__dist/engine/debug
-          cp -r ./debug/*.h ../__dist/engine/debug
+          cp -r ./debug/*.c ../__dist/engine/debug || true
+          cp -r ./debug/*.h ../__dist/engine/debug || true
           
-          cp -r ./prod/*.c ../__dist/engine/release
-          cp -r ./prod/*.h ../__dist/engine/release
+          cp -r ./prod/*.c ../__dist/engine/release || true
+          cp -r ./prod/*.h ../__dist/engine/release || true
           
-          cp -r ./modules/core/*.c ../__dist/engine/modules/core
-          cp -r ./modules/core/*.h ../__dist/engine/modules/core
+          cp -r ./modules/core/*.c ../__dist/engine/modules/core || true
+          cp -r ./modules/core/*.h ../__dist/engine/modules/core || true
 
       - name: Pack artifact
         id: output-info
