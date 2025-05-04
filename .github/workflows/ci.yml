@@ -22,8 +22,8 @@ jobs:
       - name: Get latest Zig version
         id: get-version
         run: |
-          INDEX_JSON=$(curl -s https://ziglang.org/download/index.json)
-          VERSION=$(node -e "let versions = JSON.parse(`$INDEX_JSON`); process.stdout.write(Object.keys(versions)[1]);")
+          curl -s https://ziglang.org/download/index.json > v.json
+          VERSION=$(node -e "let v = JSON.parse(require('fs').readFileSync('./v.json')); process.stdout.write(Object.keys(v)[1]);")
           echo "zig_version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set platform and arch
