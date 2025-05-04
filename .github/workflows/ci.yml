@@ -103,7 +103,7 @@ jobs:
           npm install
           
           tsc
-          cp ./dist/* ../__dist/atomix
+          cp -r ./dist/* ../__dist/atomix
 
       - name: Build engine
         run: |
@@ -111,17 +111,17 @@ jobs:
           # TODO implement correct build script
           mkdir ./__dist/engine/modules/core
           cd atomix
-          cp ./core/*.c ../__dist/engine/core
-          cp ./core/*.h ../__dist/engine/core
+          cp -r ./core/*.c ../__dist/engine/core
+          cp -r ./core/*.h ../__dist/engine/core
           
-          cp ./debug/*.c ../__dist/engine/debug
-          cp ./debug/*.h ../__dist/engine/debug
+          cp -r ./debug/*.c ../__dist/engine/debug
+          cp -r ./debug/*.h ../__dist/engine/debug
           
-          cp ./prod/*.c ../__dist/engine/release
-          cp ./prod/*.h ../__dist/engine/release
+          cp -r ./prod/*.c ../__dist/engine/release
+          cp -r ./prod/*.h ../__dist/engine/release
           
-          cp ./modules/core/*.c ../__dist/engine/modules/core
-          cp ./modules/core/*.h ../__dist/engine/modules/core
+          cp -r ./modules/core/*.c ../__dist/engine/modules/core
+          cp -r ./modules/core/*.h ../__dist/engine/modules/core
 
       - name: Pack artifact
         id: output-info
@@ -139,7 +139,6 @@ jobs:
         with:
           name: ${{ steps.output-info.outputs.name }}
           path: ${{ steps.output-info.outputs.path }}
-          overwrite: true
 
 #  build-atomix:
 #    runs-on: ${{ matrix.os }}
