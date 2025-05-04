@@ -54,7 +54,7 @@ jobs:
         run: |
           FILE_NAME="zig-${{ steps.set-platform.outputs.platform }}-${{ steps.set-platform.outputs.arch }}-${{ steps.get-version.outputs.zig_version }}"
           EXT="tar.xz"
-          [[ ${{ matrix.os }} == "windows-lates" ]] && EXT="zip"
+          [[ ${{ matrix.os }} == "windows-latest" ]] && EXT="zip"
         
           echo "file=$FILE_NAME.$EXT" >> $GITHUB_OUTPUT
           echo "name=zig-toolchain-${{ matrix.os }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
