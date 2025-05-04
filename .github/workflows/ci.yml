@@ -7,8 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        arch: [x64, arm64]
+        platform: [linux, windows]
+        arch: [x86_64, aarch64]
 
     outputs:
       artifact_name: ${{ steps.set-artifact-name.outputs.name }}
@@ -26,38 +26,15 @@ jobs:
           VERSION=$(node -e "let v = JSON.parse(require('fs').readFileSync('./v.json')); process.stdout.write(Object.keys(v)[1]);")
           echo "zig_version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Set platform and arch
-        id: set-platform
-        run: |
-          case "${{ matrix.os }}" in
-            ubuntu-latest) 
-              PLATFORM="linux" 
-              ;;
-            windows-latest) 
-              PLATFORM="windows"
-              ;;
-          esac
-          case "${{ matrix.arch }}" in
-            x64) 
-              ARCH="x86_64" 
-              ;;
-            arm64) 
-              ARCH="aarch64"
-              ;;
-          esac
-          
-          echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
-          echo "arch=$ARCH" >> $GITHUB_OUTPUT
-
       - name: Set archive info
         id: set-artifact-name
         run: |
-          FILE_NAME="zig-${{ steps.set-platform.outputs.platform }}-${{ steps.set-platform.outputs.arch }}-${{ steps.get-version.outputs.zig_version }}"
+          FILE_NAME="zig-${{ matrix.platform }}-${{ matrix.arch}}-${{ steps.get-version.outputs.zig_version }}"
           EXT="tar.xz"
-          [[ ${{ matrix.os }} == "windows-latest" ]] && EXT="zip"
-        
+          [[ ${{ matrix.platform }} == "windows" ]] && EXT="zip"
+
           echo "file=$FILE_NAME.$EXT" >> $GITHUB_OUTPUT
-          echo "name=zig-toolchain-${{ matrix.os }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
+          echo "name=zig-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
 
       - name: Download zig
         run: |
