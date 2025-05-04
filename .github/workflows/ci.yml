@@ -25,12 +25,20 @@ jobs:
         id: set-platform
         run: |
           case "${{ matrix.os }}" in
-            ubuntu-latest) PLATFORM="linux" ;;
-            windows-latest) PLATFORM="windows" ;;
+            ubuntu-latest) 
+              PLATFORM="linux" 
+              ;;
+            windows-latest) 
+              PLATFORM="windows"
+              ;;
           esac
           case "${{ matrix.arch }}
-            x64) ARCH="x86_64" ;;
-            arm64) ARCH="aarch64 ;;
+            x64) 
+              ARCH="x86_64" 
+              ;;
+            arm64) 
+              ARCH="aarch64 
+              ;;
           esac
           
           echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
