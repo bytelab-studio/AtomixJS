@@ -103,7 +103,7 @@ jobs:
           npm install
           
           tsc
-          cp ./dist/* ../__dist/atomixc
+          cp ./dist/* ../__dist/atomix
 
       - name: Build engine
         run: |
