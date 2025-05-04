@@ -52,7 +52,7 @@ jobs:
           [[ ${{ matrix.os }} == "windows-lates" ]] && EXT="zip"
         
           echo "file=$FILE_NAME.$EXT" >> $GITHUB_OUTPUT
-          echo "name=zig-toolchain-${{ matrix.os }}-${{ matrix.os }}" >> $GITHUB_OUTPUT
+          echo "name=zig-toolchain-${{ matrix.os }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
 
       - name: Download zig
         run: |
