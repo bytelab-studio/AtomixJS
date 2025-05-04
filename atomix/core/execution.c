@@ -1056,8 +1056,8 @@ void inst_dup(VM* vm, void* ptr)
     {
         PANIC("Stack overflow");
     }
-
-    vm->stats.stack[vm->stats.stack_counter++] = vm->stats.stack[vm->stats.stack_counter - 1];
+    vm->stats.stack_counter++;
+    vm->stats.stack[vm->stats.stack_counter - 1] = vm->stats.stack[vm->stats.stack_counter - 2];
 }
 
 void inst_swap(VM* vm, void* ptr)
