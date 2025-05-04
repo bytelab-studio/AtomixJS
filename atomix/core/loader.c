@@ -39,12 +39,13 @@ JSModule module_load_from_file(const char* filename)
 #define READ_U32(buff, position) (position += 4, (uint32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
 #define READ_I32(buff, position) (position += 4, (int32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
 
-#define READ_DOUBLE(buff, position) ({          \
-    double _val;                                \
-    memcpy(&_val, buff + position, 8);          \
-    position += 8;                              \
-    _val;                                       \
-})
+static double READ_DOUBLE(const char* buff, size_t* position)
+{
+    double _val;
+    memcpy(&_val, buff + *position, 8);
+    *position += 8;
+    return _val;
+}
 
 StringTable load_string_table(const char* buff)
 {
@@ -89,7 +90,7 @@ void* load_instruction(const char* buff, size_t* start_position)
         {
             InstDouble* x = js_malloc(sizeof(InstDouble));
             x->opcode = opcode;
-            x->operand = READ_DOUBLE(buff, position);
+            x->operand = READ_DOUBLE(buff, &position);
             inst = x;
             break;
         }
