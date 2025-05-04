@@ -46,8 +46,101 @@ jobs:
           name: ${{ steps.set-artifact-name.outputs.name }}
           path: ${{ steps.set-artifact-name.outputs.file }}
           overwrite: true
+  create-engine:
+    needs: download-zig
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux, windows]
+        arch: [x86_64]
 
-#
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set archive info
+        id: set-archive-info
+        run: |
+          NAME="${{ matrix.platform }}-${{ matrix.arch }}"
+          PATH="zig"
+          
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.set-archive-info.outputs.name }}
+          path: ${{ steps.set-archive-info.outputs.path }}
+
+      - name: Prepare folder structure
+        run: |
+          mkdir -p ./__dist/{zig,engine,atomix}
+
+      - name: Extract artifact archive (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          mkdir -p ./__tmp
+          unzip "${{ steps.set-archive-info.outputs.path }}" -d .
+          unzip "zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -d __tmp
+          shopt -s dotglob
+          mv ./__tmp/*/* ./__dist/zig/
+          rm -rf ./__tmp
+
+      - name: Extract artifact archive (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          unzip "${{ steps.set-archive-info.outputs.path }}" -d .
+          tar --strip-components=1 -xf "zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -C ./__dist/zig
+
+      - name: Build atomixc
+        run: |
+          cd ./atomixc
+          npm install -g typescript
+          npm install
+          
+          tsc
+          cp ./dist/* ../__dist/atomixc
+
+      - name: Build engine
+        run: |
+          mkdir ./__dist/engine/{core,modules,debug,release}
+          # TODO implement correct build script
+          mkdir ./__dist/engine/modules/core
+          cd atomix
+          cp ./core/*.c ../__dist/engine/core
+          cp ./core/*.h ../__dist/engine/core
+          
+          cp ./debug/*.c ../__dist/engine/debug
+          cp ./debug/*.h ../__dist/engine/debug
+          
+          cp ./prod/*.c ../__dist/engine/release
+          cp ./prod/*.h ../__dist/engine/release
+          
+          cp ./modules/core/*.c ../__dist/engine/modules/core
+          cp ./modules/core/*.h ../__dist/engine/modules/core
+
+      - name: Pack artifact
+        id: output-info
+        run:
+          NAME="atomix-${{ matrix.platform }}-${{ matrix.arch }}"
+          PATH="$NAME.zip"
+          cd ./__dist
+          zip -r "../$PATH" .
+          cd ..
+          
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.output-info.outputs.name }}
+          path: ${{ steps.output-info.outputs.path }}
+
 #  build-atomix:
 #    runs-on: ${{ matrix.os }}
 #    strategy:
