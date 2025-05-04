@@ -93,6 +93,7 @@ jobs:
       - name: Extract artifact archive (Linux)
         if: matrix.platform == 'linux'
         run: |
+          ls -ls
           tar --strip-components=1 -xf "./zig-${{ matrix.platform }}-${{ matrix.arch }}-*.xz" -C ./__dist/zig
 
       - name: Build atomixc
