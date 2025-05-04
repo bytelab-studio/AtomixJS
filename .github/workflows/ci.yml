@@ -126,11 +126,10 @@ jobs:
       - name: Pack artifact
         id: output-info
         run: |
-          which zip
           NAME="atomix-${{ matrix.platform }}-${{ matrix.arch }}"
           PATH="$NAME.zip"
           cd ./__dist
-          zip -r "../$PATH" .
+          /usr/bin/zip -r "../$PATH" .
           cd ..
           
           echo "name=$NAME" >> $GITHUB_OUTPUT
