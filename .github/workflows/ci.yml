@@ -84,9 +84,7 @@ jobs:
       - name: Extract artifact archive (Windows)
         if: matrix.platform == 'windows'
         run: |
-          ls -ls
           mkdir -p ./__tmp
-          unzip "./${{ steps.set-archive-info.outputs.path }}" -d "."
           unzip "zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -d "__tmp"
           shopt -s dotglob
           mv ./__tmp/*/* ./__dist/zig/
@@ -95,8 +93,6 @@ jobs:
       - name: Extract artifact archive (Linux)
         if: matrix.platform == 'linux'
         run: |
-          ls -ls
-          unzip "./${{ steps.set-archive-info.outputs.path }}" -d "."
           tar --strip-components=1 -xf "zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -C ./__dist/zig
 
       - name: Build atomixc
