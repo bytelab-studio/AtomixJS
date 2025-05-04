@@ -75,7 +75,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ steps.set-archive-info.outputs.name }}
-          path: ${{ steps.set-archive-info.outputs.path }}
+          path: '.'
 
       - name: Prepare folder structure
         run: |
