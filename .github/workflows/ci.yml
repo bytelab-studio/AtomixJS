@@ -125,7 +125,7 @@ jobs:
 
       - name: Pack artifact
         id: output-info
-        run:
+        run: |
           NAME="atomix-${{ matrix.platform }}-${{ matrix.arch }}"
           PATH="$NAME.zip"
           cd ./__dist
