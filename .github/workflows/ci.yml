@@ -66,7 +66,7 @@ jobs:
       - name: Set archive info
         id: set-archive-info
         run: |
-          NAME="${{ matrix.platform }}-${{ matrix.arch }}"
+          NAME="zig-${{ matrix.platform }}-${{ matrix.arch }}"
           PATH="zig"
           
           echo "name=$NAME" >> $GITHUB_OUTPUT
@@ -140,6 +140,7 @@ jobs:
         with:
           name: ${{ steps.output-info.outputs.name }}
           path: ${{ steps.output-info.outputs.path }}
+          overwrite: true
 
 #  build-atomix:
 #    runs-on: ${{ matrix.os }}
