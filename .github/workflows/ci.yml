@@ -45,6 +45,7 @@ jobs:
         with:
           name: ${{ steps.set-artifact-name.outputs.name }}
           path: ${{ steps.set-artifact-name.outputs.file }}
+          overwrite: true
 
 #
 #  build-atomix:
