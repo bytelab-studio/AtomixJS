@@ -5,10 +5,8 @@ const child_process = require("child_process");
 const os = require("os");
 
 const NODE_SUIT = path.join(__dirname, "utils", "node-suit.js");
-const COMPILER = path.join(__dirname, "..", "atomixc", "dist", "bin", "atomixc.js");
-const VM_RUNNER = os.platform() === "win32"
-    ? path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix.exe")
-    : path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix");
+const COMPILER = process.argv[2];
+const VM_RUNNER = process.argv[3];
 const WORKERS = 4;
 
 class AsyncLock {

@@ -15,11 +15,11 @@
   "description": "",
   "dependencies": {
     "@koschel-christoph/node.options": "^1.1.0",
-    "@types/estraverse": "^5.1.7",
     "acorn": "^8.14.1",
     "estraverse": "^5.3.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.10"
+    "@types/node": "^22.13.10",
+    "@types/estraverse": "^5.1.7"
   }
 }
