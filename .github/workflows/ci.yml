@@ -167,12 +167,19 @@ jobs:
       - name: Extract engine
         run: |
           mkdir ./build
-          unzip ./atomix-linux-${{matrix.arch}}.zip -d ./build
+          unzip -q ./atomix-linux-${{matrix.arch}}.zip -d ./build
 
       - name: Init engine
         run: |
-          cd build
-          ls
+          ATOMIXC="./build/atomix/bin/atomixc.js"
+          node $ATOMIXC engine init -p linux -a ${{ matrix.arch }}
+
+      - name: Run tests
+        run: |
+          ATOMIXC="./build/atomix/bin/atomixc.js"
+          RUNNER="./.atomix/bin/Debug/linux-${{ matrix.arch }}/runner
+          chmod u+x $RUNNER
+          node ./tests/suite.js $ATOMIXC $RUNNER
 
 #  build-atomix:
 #    runs-on: ${{ matrix.os }}
