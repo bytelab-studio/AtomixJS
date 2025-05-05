@@ -168,6 +168,7 @@ jobs:
         run: |
           mkdir ./build
           unzip -q ./atomix-linux-${{matrix.arch}}.zip -d ./build
+          PATH=$PATH:$(pwd)/build/zig
 
       - name: Init engine
         run: |
