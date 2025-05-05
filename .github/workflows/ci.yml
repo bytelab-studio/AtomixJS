@@ -104,6 +104,7 @@ jobs:
           
           tsc
           cp -r ./dist/* ../__dist/atomix
+          cp ./package.json ../__dist/atomix
 
       - name: Build engine
         run: |
