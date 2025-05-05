@@ -105,6 +105,8 @@ jobs:
           tsc
           cp -r ./dist/* ../__dist/atomix
           cp ./package.json ../__dist/atomix
+          cd ../__dist/atomix
+          npm install --omit=dev
 
       - name: Build engine
         run: |
