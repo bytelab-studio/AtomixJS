@@ -29,7 +29,7 @@ export function generateRID(platform: EnginePlatform, architecture: EngineArchit
     let arch: string;
     switch (architecture) {
         case EngineArchitecture.X64:
-            arch = "x64";
+            arch = "x86_64";
             break;
         case EngineArchitecture.ARM64:
             arch = "arm64";
