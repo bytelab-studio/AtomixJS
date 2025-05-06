@@ -181,67 +181,40 @@ jobs:
           RUNNER="./.atomix/bin/Debug/linux-${{ matrix.arch }}/runner"
           chmod u+x $RUNNER
           node ./tests/suite.js $ATOMIXC $RUNNER
+  test-windows:
+    needs: create-engine
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [ x86_64 ]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-#  build-atomix:
-#    runs-on: ${{ matrix.os }}
-#    strategy:
-#      matrix:
-#        os: [ ubuntu-latest, windows-latest ]
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4
-#
-#      - name: Setup CMake
-#        uses: lukka/get-cmake@latest
-#
-#      - name: Setup NodeJS
-#        uses: actions/setup-node@v4
-#        with:
-#          node-version: '22'
-#
-#      - name: Install dependencies
-#        if: runner.os == 'Linux'
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get install -y build-essential
-#
-#      - name: Configure and build atomix project
-#        if: runner.os == 'Linux'
-#        run: |
-#          mkdir -p atomix/cmake-build-debug
-#          cd atomix
-#          cmake -S . -B cmake-build-debug
-#          cmake --build cmake-build-debug --config Debug --target atomix -j 14
-#
-#      - name: Install dependencies
-#        if: runner.os == 'Windows'
-#        uses: msys2/setup-msys2@v2
-#        with:
-#          msystem: MINGW64
-#          install: mingw-w64-x86_64-gcc
-#
-#      - name: Configure and build atomix project
-#        if: runner.os == 'Windows'
-#        run: |
-#          mkdir -p atomix/cmake-build-debug
-#          cd atomix
-#          cmake -G "Ninja" -DCMAKE_C_COMPILER=gcc -S . -B cmake-build-debug
-#          cmake --build cmake-build-debug --config Debug --target atomix -j 14
-#
-#      - name: Install TypeScript
-#        run: npm install -g typescript
-#
-#      - name: Install dependencies
-#        run: |
-#          cd atomixc
-#          npm install
-#
-#      - name: Build atomixc project
-#        run: |
-#          cd atomixc
-#          npx tsc
-#
-#      - name: Run tests
-#        run: |
-#          cd tests
-#          node ./suite.js
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+        
+      - name: Download engine artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+          name: atomix-windows-${{ matrix.arch }}
+        
+      - name: Extract engine
+        run: |
+          mkdir build
+          powershell -Command "Expand-Archive -Path atomix-windows-${{ matrix.arch }}.zip -DestinationPath build"
+
+      - name: Init engine
+        run: |
+          $env:PATH += ";$PWD\\build\\zig"
+          $env:ATOMIXC = "$PWD\\build\\atomix\\bin\\atomixc.js"
+          node $env:ATOMIXC engine init -p windows -a ${{ matrix.arch }}
+        
+      - name: Run tests
+        run: |
+          $env:ATOMIXC = "$PWD\\build\\atomix\\bin\\atomixc.js"
+          $env:RUNNER = "$PWD\\.atomix\\bin\\Debug\\windows-${{ matrix.arch }}\\runner.exe"
+          node .\\tests\\suite.js $env:ATOMIXC $env:RUNNER
