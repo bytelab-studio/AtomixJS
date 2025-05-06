@@ -49,7 +49,7 @@ function runSubprocess(command, args, identifier) {
 
         child.on("close", code => {
             if (code !== 0) {
-                return reject(new Error(`Process exited with code ${code}: ${identifier}`));
+                return reject(new Error(`Process exited with code ${code}: ${identifier}\n${stderr}\n\n${stdout}`));
             }
             resolve(stdout);
         });
