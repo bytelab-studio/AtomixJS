@@ -11,8 +11,14 @@ const CC_BASE_FLAGS: string[] = ["-Wall", "-std=gnu99"];
 
 const AR: string[] = ["zig", "ar"];
 
-interface ModInfo { 
+interface ModInfo {
     loader: string[];
+}
+
+interface CDFItem {
+    directory: string;
+    arguments: string[];
+    file: string;
 }
 
 class Gateway {
@@ -89,6 +95,19 @@ class Compiler {
         this.info = info;
     }
 
+    public buildCDFArray(output: string, args: string[]): string[] {
+        return [
+            ...CC,
+            ...this.info.CC_BASE_FLAGS,
+            "-c",
+            "-o",
+            output,
+            ...args,
+            "-target",
+            this.info.getZigTarget()
+        ];
+    }
+
     public compile(input: string, output: string, args: string[]): void {
         const execString: string = [...CC, ...this.info.CC_BASE_FLAGS, "-c", input, "-o", output, ...args, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
 
@@ -102,7 +121,7 @@ class Compiler {
 
         child_process.execSync(execString, {
             encoding: "utf-8",
-            input: input, 
+            input: input,
         });
     }
 
@@ -149,6 +168,23 @@ export class EngineBuilder {
         this.gateway.compiler.link(includes, result)
     }
 
+    public cdf(): CDFItem[] {
+        return [
+            ...this.getCoreCDF(),
+            ...this.getLoaderCDF(),
+            ...this.modules.map(module => this.getModuleCDF(module)).flat()
+        ];
+    }
+
+    private getCoreCDF(): CDFItem[] {
+        const files: string[] = this.readdirSync(path.join(ENGINE_BASE, "core")).filter(file => file.endsWith(".c"));
+        return files.map(file => ({
+            directory: ENGINE_BASE,
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "core", path.basename(file) + ".o"), []),
+            file: file,
+        }));
+    }
+
     private compileCore(): string {
         const base: string = path.join(this.objFolder, "core");
         createFolder(base);
@@ -161,12 +197,21 @@ export class EngineBuilder {
         return result;
     }
 
+    private getLoaderCDF(): CDFItem[] {
+        const files: string[] = this.readdirSync(path.join(ENGINE_BASE, this.debug ? "debug" : "release")).filter(file => file.endsWith(".c"));
+        return files.map(file => ({
+            directory: ENGINE_BASE,
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "loader", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core")]),
+            file: file,
+        }));
+    }
+
     private compileLoader(): string {
         const base: string = path.join(this.objFolder, "loader");
         createFolder(base);
 
         const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, this.debug ? "debug" : "release")).filter(file => file.endsWith(".c"));
-        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I",  path.join(ENGINE_BASE, "core")]);
+        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "core")]);
 
         const result: string = path.join(this.objFolder, "libloader.a");
         this.gateway.archiver.archive(objectFiles, result, []);
@@ -204,6 +249,15 @@ export class EngineBuilder {
         return output;
     }
 
+    private getModuleCDF(module: string): CDFItem[] {
+        const files: string[] = this.readdirSync(path.join(ENGINE_BASE, "modules", module)).filter(file => file.endsWith(".c"));
+        return files.map(file => ({
+            directory: ENGINE_BASE,
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, `mod_${module}`, path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core")]),
+            file: file
+        }));
+    }
+
     private compileModule(module: string): string {
         const base: string = path.join(this.objFolder, `mod_${module}`);
         createFolder(base);
@@ -239,6 +293,23 @@ export class EngineBuilder {
         new EngineBuilder(dir, platform, architecture, modules, debug).create();
     }
 
+    public static createCDF(output: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[], debug: boolean) {
+        if (modules.length == 0) {
+            modules = this.getAllModules();
+        } else {
+            const allModules: string[] = this.getAllModules();
+            for (const module of modules) {
+                if (!allModules.includes(module)) {
+                    console.log(`Module '${module}' not found. Available modules: ${allModules.join(", ")}`);
+                    process.exit(1);
+                }
+            }
+        }
+
+        const cdf: CDFItem[] = new EngineBuilder(process.cwd(), platform, architecture, modules, debug).cdf();
+        fs.writeFileSync(output, JSON.stringify(cdf, null, 4));
+    }
+
     public static getAllModules(): string[] {
         const base: string = path.join(ENGINE_BASE, "modules");
         return fs.readdirSync(base).filter(dir => fs.statSync(path.join(base, dir)).isDirectory());
@@ -246,6 +317,6 @@ export class EngineBuilder {
 
     public static getModuleInfo(module: string): ModInfo {
         const file: string = path.join(ENGINE_BASE, "modules", module, "mod.json");
-        return JSON.parse(fs.readFileSync(file, "utf-8"));        
+        return JSON.parse(fs.readFileSync(file, "utf-8"));
     }
 }

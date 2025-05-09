@@ -73,3 +73,7 @@ export function initEngineBuild(base: string, platform: EnginePlatform, architec
 
     EngineBuilder.createEngine(base, platform, architecture, EngineBuilder.getAllModules(), true);
 }
+
+export function generateCDF(output: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[]): void {
+    EngineBuilder.createCDF(output, platform, architecture, modules, true);
+}

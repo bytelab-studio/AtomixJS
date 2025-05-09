@@ -1,5 +1,6 @@
 import {OptionSet, SubCommandSet} from "@koschel-christoph/node.options";
 import init from "./init";
+import cdf from "./cdf";
 
 function* base(handler: SubCommandSet, commandNotFound: boolean): Generator<OptionSet> {
     let help: boolean = false;
@@ -18,7 +19,8 @@ function* engine(handler: SubCommandSet): Generator<OptionSet | SubCommandSet> {
     const set = new SubCommandSet(
         "Usage: atomixc engine <subcommand> [<options>]",
         base,
-        init
+        init,
+        cdf
     );
 
     yield set;
