@@ -125,6 +125,7 @@ jobs:
           
           cp -r ./modules/core/*.c ../__dist/engine/modules/core || true
           cp -r ./modules/core/*.h ../__dist/engine/modules/core || true
+          cp -r ./modules/core/mod.json ../__dist/engine/modules/core || true
 
       - name: Pack artifact
         id: output-info

@@ -11,6 +11,10 @@ const CC_BASE_FLAGS: string[] = ["-Wall", "-std=gnu99"];
 
 const AR: string[] = ["zig", "ar"];
 
+interface ModInfo { 
+    loader: string[];
+}
+
 class Gateway {
     public readonly archiver: Archiver;
     public readonly compiler: Compiler;
@@ -20,7 +24,7 @@ class Gateway {
     public get CC_BASE_FLAGS(): string[] {
         const ADDITIONAL_FLAGS: string[] = [];
         if (this.platform == EnginePlatform.LINUX) {
-            ADDITIONAL_FLAGS.push("-Wl,-T=\"" + path.join(ENGINE_BASE, "atomix.ld") + "\"");
+            // ADDITIONAL_FLAGS.push("-Wl,-T=\"" + path.join(ENGINE_BASE, "atomix.ld") + "\"");
         }
 
         return CC_BASE_FLAGS.concat(ADDITIONAL_FLAGS);
@@ -40,7 +44,7 @@ class Gateway {
                 platform = "windows-gnu";
                 break;
             case EnginePlatform.LINUX:
-                platform = "linux-gnu";
+                platform = "linux-musl";
                 break;
             default:
                 throw "Unexpected platform";
@@ -93,6 +97,15 @@ class Compiler {
         });
     }
 
+    public compileFromInput(input: string, output: string, args: string[]): void {
+        const execString: string = [...CC, ...this.info.CC_BASE_FLAGS, "-x", "c", "-", "-c", "-o", output, ...args, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
+
+        child_process.execSync(execString, {
+            encoding: "utf-8",
+            input: input, 
+        });
+    }
+
     public link(args: string[], output: string): void {
         const execString: string = [...CC, ...this.info.CC_BASE_FLAGS, ...args, "-o", output, "-target", this.info.getZigTarget()].map(x => `"${x}"`).join(" ");
 
@@ -121,6 +134,7 @@ export class EngineBuilder {
         const includes: string[] = [
             this.compileCore(),
             this.compileLoader(),
+            this.compileModLoader(),
             "-Wl,--whole-archive",
             ...this.compileModules(),
             "-Wl,--no-whole-archive"
@@ -174,6 +188,22 @@ export class EngineBuilder {
         return results;
     }
 
+    private compileModLoader(): string {
+        const output: string = path.join(this.objFolder, "mod_loader.o");
+        const loaders: string[] = this.modules.map(module => EngineBuilder.getModuleInfo(module).loader).flat();
+        this.gateway.compiler.compileFromInput(`
+        #include <stddef.h>
+
+        ${loaders.map(loader => `extern void ${loader}(void*);`).join('\n')}
+
+        const void* __MOD_LOADER__[] = {
+            ${loaders.map(loader => `(const void*)${loader}`).join(",\n    ")}
+        };
+        const size_t __MOD_LOADER_SIZE__ = ${loaders.length};
+        `, output, []);
+        return output;
+    }
+
     private compileModule(module: string): string {
         const base: string = path.join(this.objFolder, `mod_${module}`);
         createFolder(base);
@@ -212,5 +242,10 @@ export class EngineBuilder {
     public static getAllModules(): string[] {
         const base: string = path.join(ENGINE_BASE, "modules");
         return fs.readdirSync(base).filter(dir => fs.statSync(path.join(base, dir)).isDirectory());
+    }
+
+    public static getModuleInfo(module: string): ModInfo {
+        const file: string = path.join(ENGINE_BASE, "modules", module, "mod.json");
+        return JSON.parse(fs.readFileSync(file, "utf-8"));        
     }
 }

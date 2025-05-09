@@ -137,5 +137,3 @@ void core_init(Scope* scope)
 
     scope_declare(scope, init_string("Array"), JS_VALUE_FUNCTION(_array));
 }
-
-MODULE_INIT(core_init);
