@@ -5,32 +5,12 @@
 
 #include "allocator.h"
 
-#ifdef _WIN64
+extern const module_init __MOD_LOADER__[];
+extern const size_t __MOD_LOADER_SIZE__;
 
-__attribute__((section(MOD_SECTION"$a")))
-void* __start_mod_init = NULL;
-
-__attribute__((section(MOD_SECTION"$z")))
-void* __stop_mod_init = NULL;
-
-#else
-
-extern const module_init __start_mod_init;
-extern const module_init __stop_mod_init;
-
-#endif
-
-void bind_modules(Scope* scope)
-{
-    module_init* start_list = (void*)&__start_mod_init;
-    module_init* end_list = (void*)&__stop_mod_init;
-
-    for (module_init* module_init = start_list; module_init < end_list; module_init++)
-    {
-        if (*module_init)
-        {
-            (*module_init)(scope);
-        }
+void bind_modules(Scope* scope) {
+    for (size_t i = 0; i < __MOD_LOADER_SIZE__; i++) {
+        (__MOD_LOADER__[i])(scope);
     }
 }
 
