@@ -1,2 +1,4 @@
 .idea
 .vscode
+zig
+compile_commands.json

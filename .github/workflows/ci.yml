@@ -1,68 +1,221 @@
 name: CI
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
-  build-atomix:
-    runs-on: ${{ matrix.os }}
+  download-zig:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        platform: [ linux, windows ]
+        arch: [ x86_64, aarch64 ]
 
-      - name: Setup CMake
-        uses: lukka/get-cmake@latest
+    outputs:
+      artifact_name: ${{ steps.set-artifact-name.outputs.name }}
+
+    steps:
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Get latest Zig version
+        id: get-version
+        run: |
+          curl -s https://ziglang.org/download/index.json > v.json
+          VERSION=$(node -e "let v = JSON.parse(require('fs').readFileSync('./v.json')); process.stdout.write(Object.keys(v)[1]);")
+          echo "zig_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set archive info
+        id: set-artifact-name
+        run: |
+          FILE_NAME="zig-${{ matrix.platform }}-${{ matrix.arch}}-${{ steps.get-version.outputs.zig_version }}"
+          EXT="tar.xz"
+          [[ ${{ matrix.platform }} == "windows" ]] && EXT="zip"
+
+          echo "file=$FILE_NAME.$EXT" >> $GITHUB_OUTPUT
+          echo "name=zig-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
+
+      - name: Download zig
+        run: |
+          curl -LO "https://ziglang.org/download/${{ steps.get-version.outputs.zig_version }}/${{ steps.set-artifact-name.outputs.file }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.set-artifact-name.outputs.name }}
+          path: ${{ steps.set-artifact-name.outputs.file }}
+          overwrite: true
+  create-engine:
+    needs: download-zig
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ linux, windows ]
+        arch: [ x86_64, aarch64 ]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Setup NodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
 
-      - name: Install dependencies
-        if: runner.os == 'Linux'
+      - name: Set archive info
+        id: set-archive-info
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
-
-      - name: Configure and build atomix project
-        if: runner.os == 'Linux'
-        run: |
-          mkdir -p atomix/cmake-build-debug
-          cd atomix
-          cmake -S . -B cmake-build-debug
-          cmake --build cmake-build-debug --config Debug --target atomix -j 14
-
-      - name: Install dependencies
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+          NAME="zig-${{ matrix.platform }}-${{ matrix.arch }}"
+          PATH="zig.zip"
+          
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
-          msystem: MINGW64
-          install: mingw-w64-x86_64-gcc
+          name: ${{ steps.set-archive-info.outputs.name }}
+          path: '.'
 
-      - name: Configure and build atomix project
-        if: runner.os == 'Windows'
+      - name: Prepare folder structure
         run: |
-          mkdir -p atomix/cmake-build-debug
-          cd atomix
-          cmake -G "Ninja" -DCMAKE_C_COMPILER=gcc -S . -B cmake-build-debug
-          cmake --build cmake-build-debug --config Debug --target atomix -j 14
+          mkdir -p ./__dist/{zig,engine,atomix}
 
-      - name: Install TypeScript
-        run: npm install -g typescript
-
-      - name: Install dependencies
+      - name: Extract artifact archive (Windows)
+        if: matrix.platform == 'windows'
         run: |
-          cd atomixc
+          mkdir -p ./__tmp
+          unzip -q "./zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -d "__tmp"
+          shopt -s dotglob
+          mv ./__tmp/*/* ./__dist/zig/
+          rm -rf ./__tmp
+
+      - name: Extract artifact archive (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          tar --strip-components=1 -xf ./zig-${{ matrix.platform }}-${{ matrix.arch }}-*.xz -C ./__dist/zig
+
+      - name: Build atomixc
+        run: |
+          ls -ls
+          cd ./atomixc
+          npm install -g typescript
           npm install
+          
+          tsc
+          cp -r ./dist/* ../__dist/atomix
+          cp ./package.json ../__dist/atomix
+          cd ../__dist/atomix
+          npm install --omit=dev
 
-      - name: Build atomixc project
+      - name: Build engine
         run: |
-          cd atomixc
-          npx tsc
+          mkdir ./__dist/engine/{core,modules,debug,release}
+          # TODO implement correct build script
+          mkdir ./__dist/engine/modules/core
+          cd atomix
+          cp -r ./core/*.c ../__dist/engine/core || true
+          cp -r ./core/*.h ../__dist/engine/core || true
+          
+          cp -r ./debug/*.c ../__dist/engine/debug || true
+          cp -r ./debug/*.h ../__dist/engine/debug || true
+          
+          cp -r ./release/*.c ../__dist/engine/release || true
+          cp -r ./release/*.h ../__dist/engine/release || true
+          
+          cp -r ./modules/core/*.c ../__dist/engine/modules/core || true
+          cp -r ./modules/core/*.h ../__dist/engine/modules/core || true
+          cp -r ./modules/core/mod.json ../__dist/engine/modules/core || true
+
+      - name: Pack artifact
+        id: output-info
+        run: |
+          NAME="atomix-${{ matrix.platform }}-${{ matrix.arch }}"
+          PATH="$NAME.zip"
+          cd ./__dist
+          /usr/bin/zip -r "../$PATH" .
+          cd ..
+          
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.output-info.outputs.name }}
+          path: ${{ steps.output-info.outputs.path }}
+
+  test-linux:
+    needs: create-engine
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ x86_64 ]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download engine artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+          name: atomix-linux-${{ matrix.arch }}
+
+      - name: Extract engine
+        run: |
+          mkdir ./build
+          unzip -q ./atomix-linux-${{matrix.arch}}.zip -d ./build
+
+      - name: Init engine
+        run: |
+          PATH=$PATH:$(pwd)/build/zig
+          ATOMIXC="./build/atomix/bin/atomixc.js"
+          node $ATOMIXC engine init -p linux -a ${{ matrix.arch }}
 
       - name: Run tests
         run: |
-          cd tests
-          node ./suite.js
+          ATOMIXC="./build/atomix/bin/atomixc.js"
+          RUNNER="./.atomix/bin/Debug/linux-${{ matrix.arch }}/runner"
+          chmod u+x $RUNNER
+          node ./tests/suite.js $ATOMIXC $RUNNER
+  test-windows:
+    needs: create-engine
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [ x86_64 ]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+        
+      - name: Download engine artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+          name: atomix-windows-${{ matrix.arch }}
+        
+      - name: Extract engine
+        run: |
+          mkdir build
+          powershell -Command "Expand-Archive -Path atomix-windows-${{ matrix.arch }}.zip -DestinationPath build"
+
+      - name: Init engine
+        run: |
+          $env:PATH += ";$PWD\\build\\zig"
+          $env:ATOMIXC = "$PWD\\build\\atomix\\bin\\atomixc.js"
+          node $env:ATOMIXC engine init -p windows -a ${{ matrix.arch }}
+        
+      - name: Run tests
+        run: |
+          $env:ATOMIXC = "$PWD\\build\\atomix\\bin\\atomixc.js"
+          $env:RUNNER = "$PWD\\.atomix\\bin\\Debug\\windows-${{ matrix.arch }}\\runner.exe"
+          node .\\tests\\suite.js $env:ATOMIXC $env:RUNNER

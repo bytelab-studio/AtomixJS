@@ -5,10 +5,8 @@ const child_process = require("child_process");
 const os = require("os");
 
 const NODE_SUIT = path.join(__dirname, "utils", "node-suit.js");
-const COMPILER = path.join(__dirname, "..", "atomixc", "dist", "bin", "atomixc.js");
-const VM_RUNNER = os.platform() === "win32"
-    ? path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix.exe")
-    : path.join(__dirname, "..", "atomix", "cmake-build-debug", "debug", "atomix");
+const COMPILER = process.argv[2];
+const VM_RUNNER = process.argv[3];
 const WORKERS = 4;
 
 class AsyncLock {
@@ -51,7 +49,7 @@ function runSubprocess(command, args, identifier) {
 
         child.on("close", code => {
             if (code !== 0) {
-                return reject(new Error(`Process exited with code ${code}: ${identifier}`));
+                return reject(new Error(`Command: ${[command, ...args].join(" ")}\nProcess exited with code ${code}: ${identifier}\n${stderr}\n\n${stdout}`));
             }
             resolve(stdout);
         });
@@ -60,7 +58,7 @@ function runSubprocess(command, args, identifier) {
 
 async function compileProgram(test) {
     const outputFile = test + ".bin";
-    await runSubprocess("node", [COMPILER, test, "-o", outputFile, "-r", "."], test);
+    await runSubprocess("node", [COMPILER, "compiler", "compile", test, "-o", outputFile, "-r", "."], test);
     return outputFile;
 }
 

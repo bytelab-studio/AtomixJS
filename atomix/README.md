@@ -9,7 +9,7 @@ atomix/
 ├── modules/             # Domain specific modules
 │   └── core/            # Core module for exposing VM functionalities
 ├── debug/               # Code for the debug executable (Includes all modules)
-└── prod/                # Code for the production executable (WIP)
+└── release/             # Code for the production executable (WIP)
 ```
 
 ## Building

@@ -1,21 +1,16 @@
 #include "api.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "allocator.h"
 
-extern module_init __start_mod_init;
-extern module_init __stop_mod_init;
+extern const module_init __MOD_LOADER__[];
+extern const size_t __MOD_LOADER_SIZE__;
 
-
-void bind_modules(Scope* scope)
-{
-    for (module_init* module_init = &__start_mod_init; module_init < &__stop_mod_init; module_init++)
-    {
-        if (*module_init)
-        {
-            (*module_init)(scope);
-        }
+void bind_modules(Scope* scope) {
+    for (size_t i = 0; i < __MOD_LOADER_SIZE__; i++) {
+        (__MOD_LOADER__[i])(scope);
     }
 }
 

@@ -139,8 +139,17 @@ function transformForStatement(node: acorn.ForStatement): acorn.Node {
         });
 
     const body: acorn.Node = node.update
-        ? packNodes([node.body, node.update])
-        : node.body;
+        ? packNodes([
+            node.body,
+            (<acorn.ExpressionStatement>{
+                type: "ExpressionStatement",
+                expression: node.update,
+                start: node.update.start,
+                end: node.update.end,
+                loc: node.update.loc,
+                range: node.update.range
+            })
+        ]) : node.body;
 
     nodes.push((<acorn.WhileStatement>{
         type: "WhileStatement",

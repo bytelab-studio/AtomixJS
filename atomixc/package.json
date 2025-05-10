@@ -4,7 +4,7 @@
   "main": "./dist/bin/atomixc.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node . ./test.js -o test.bin -r ."
+    "start": "tsc && node . compiler compile test.js -o ./test.bin -r ."
   },
   "bin": {
     "atomixc": "./dist/bin/atomixc.js"
@@ -15,13 +15,13 @@
   "description": "",
   "dependencies": {
     "@koschel-christoph/node.options": "^1.1.0",
-    "@types/estraverse": "^5.1.7",
     "acorn": "^8.14.1",
     "escodegen": "^2.1.0",
     "estraverse": "^5.3.0"
   },
   "devDependencies": {
     "@types/escodegen": "^0.0.10",
-    "@types/node": "^22.13.10"
+    "@types/node": "^22.13.10",
+    "@types/estraverse": "^5.1.7"
   }
 }

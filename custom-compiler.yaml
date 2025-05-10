@@ -1,0 +1,7 @@
+compilers:
+  - description: ZigCC
+    match-sources: ".*\\.c"
+    match-language: C
+    match-compiler-exe: "(.*/)?zig(\\.exe)?"
+    code-insight-target-name: x86_64
+    include-dirs: ${compiler-exe-dir}/lib/libc/any-windows-any

@@ -368,8 +368,8 @@ void inst_binary_and(VM* vm, void* ptr)
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
-        right.type != JS_INTEGER && right.type != JS_DOUBLE)
+    if ((left.type != JS_INTEGER && left.type != JS_DOUBLE) ||
+        (right.type != JS_INTEGER && right.type != JS_DOUBLE))
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(0);
         return;
@@ -396,8 +396,8 @@ void inst_binary_or(VM* vm, void* ptr)
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
-        right.type != JS_INTEGER && right.type != JS_DOUBLE)
+    if ((left.type != JS_INTEGER && left.type != JS_DOUBLE) ||
+        (right.type != JS_INTEGER && right.type != JS_DOUBLE))
     {
         if (left.type == JS_INTEGER)
         {
@@ -444,8 +444,8 @@ void inst_binary_xor(VM* vm, void* ptr)
 
     vm->stats.stack_counter--;
 
-    if (left.type != JS_INTEGER && left.type != JS_DOUBLE ||
-        right.type != JS_INTEGER && right.type != JS_DOUBLE)
+    if ((left.type != JS_INTEGER && left.type != JS_DOUBLE) ||
+        (right.type != JS_INTEGER && right.type != JS_DOUBLE))
     {
         if (left.type == JS_INTEGER)
         {
@@ -701,8 +701,8 @@ void inst_teq(VM* vm, void* ptr)
     vm->stats.stack_counter--;
 
     if (left.type != right.type &&
-        !(left.type == JS_DOUBLE && right.type == JS_INTEGER ||
-            left.type == JS_INTEGER && right.type == JS_DOUBLE)
+        !((left.type == JS_DOUBLE && right.type == JS_INTEGER) ||
+            (left.type == JS_INTEGER && right.type == JS_DOUBLE))
     )
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(0);
@@ -759,8 +759,8 @@ void inst_nteq(VM* vm, void* ptr)
     vm->stats.stack_counter--;
 
     if (left.type != right.type &&
-        !(left.type == JS_DOUBLE && right.type == JS_INTEGER ||
-            left.type == JS_INTEGER && right.type == JS_DOUBLE)
+        !((left.type == JS_DOUBLE && right.type == JS_INTEGER) ||
+            (left.type == JS_INTEGER && right.type == JS_DOUBLE))
     )
     {
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_BOOL(1);
@@ -1065,8 +1065,8 @@ void inst_dup(VM* vm, void* ptr)
     {
         PANIC("Stack overflow");
     }
-
-    vm->stats.stack[vm->stats.stack_counter++] = vm->stats.stack[vm->stats.stack_counter - 1];
+    vm->stats.stack_counter++;
+    vm->stats.stack[vm->stats.stack_counter - 1] = vm->stats.stack[vm->stats.stack_counter - 2];
 }
 
 void inst_swap(VM* vm, void* ptr)
