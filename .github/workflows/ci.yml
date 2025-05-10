@@ -120,8 +120,8 @@ jobs:
           cp -r ./debug/*.c ../__dist/engine/debug || true
           cp -r ./debug/*.h ../__dist/engine/debug || true
           
-          cp -r ./prod/*.c ../__dist/engine/release || true
-          cp -r ./prod/*.h ../__dist/engine/release || true
+          cp -r ./release/*.c ../__dist/engine/release || true
+          cp -r ./release/*.h ../__dist/engine/release || true
           
           cp -r ./modules/core/*.c ../__dist/engine/modules/core || true
           cp -r ./modules/core/*.h ../__dist/engine/modules/core || true
