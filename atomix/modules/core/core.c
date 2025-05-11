@@ -157,6 +157,11 @@ JSValue is_array(VM* vm, JSValue this, JSValue* args, size_t argc)
     return JS_VALUE_BOOL(value_is_array(&value));
 }
 
+JSValue function(VM* vm, JSValue this, JSValue* args, size_t argc) {
+    // TODO throw exception
+    return JS_VALUE_UNDEFINED;
+}
+
 void core_init(Scope* scope)
 {
     // Helper
@@ -187,4 +192,11 @@ void core_init(Scope* scope)
     object_set_property(_array->base, init_string("isArray"), JS_VALUE_FUNCTION(_is_array));
 
     scope_declare(scope, init_string("Array"), JS_VALUE_FUNCTION(_array));
+
+    // Function
+    JSFunction* _function = function_create_native_function(function);
+    _function->base->prototype = object_get_function_prototype();
+
+    scope_declare(scope, init_string("Function"), JS_VALUE_FUNCTION(_function));
+
 }

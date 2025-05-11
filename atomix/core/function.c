@@ -27,7 +27,7 @@ JSFunction* function_create_function(
 
     Scope* scope = scope_create_scope(parentScope);
     function->scope = scope;
-    function->base = object_create_object(object_get_object_prototype());
+    function->base = object_create_object(object_get_function_prototype());
 
     return function;
 }

@@ -39,6 +39,21 @@ declare global {
     }
 
     declare const Array: Array;
+
+    interface Function {
+        /**
+         * Function constructor cannot be implemented
+         * because native JavaScript parsing cannot be fulfilled.
+         */
+        (): never;
+        /**
+         * Function constructor cannot be implemented
+         * because native JavaScript parsing cannot be fulfilled.
+         */
+        new (): never;
+    }
+
+    declare const Function: Function;
 }
 
 export {}
