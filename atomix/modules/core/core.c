@@ -5,7 +5,7 @@
 #include "execution.h"
 #include "function.h"
 
-JSValue print(VM* vm, JSValue* args, size_t argc)
+JSValue print(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     if (argc == 0)
     {
@@ -63,18 +63,18 @@ JSValue print(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_UNDEFINED;
 }
 
-JSValue module_get_export_obj(VM* vm, JSValue* args, size_t argc)
+JSValue module_get_export_obj(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     return JS_VALUE_OBJECT(vm->module.exports);
 }
 
-JSValue object(VM* vm, JSValue* args, size_t argc)
+JSValue object(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     // TODO implement
     return JS_VALUE_UNDEFINED;
 }
 
-JSValue instantiate(VM* vm, JSValue* args, size_t argc)
+JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     if (argc == 0)
     {
@@ -97,6 +97,7 @@ JSValue instantiate(VM* vm, JSValue* args, size_t argc)
     {
         vm->stats.stack[vm->stats.stack_counter++] = args[i];
     }
+    vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
     JSValue return_value = vm_exec_function(vm, constructor);
     if (return_value.type == JS_OBJECT)
     {
@@ -106,7 +107,7 @@ JSValue instantiate(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_OBJECT(obj);
 }
 
-JSValue array(VM* vm, JSValue* args, size_t argc)
+JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     JSObject* arr = object_create_object(object_get_array_prototype());
 
@@ -145,7 +146,7 @@ JSValue array(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_OBJECT(arr);
 }
 
-JSValue is_array(VM* vm, JSValue* args, size_t argc)
+JSValue is_array(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     if (argc < 1)
     {

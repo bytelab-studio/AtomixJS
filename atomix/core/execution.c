@@ -1129,8 +1129,7 @@ void inst_load_arg(VM* vm, void* ptr)
     }
 
     vm->stats.stack[vm->stats.stack_counter++]
-        = vm->stats.stack[vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) - inst->operand -
-            1];
+        = vm->stats.stack[vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) - inst->operand - 1];
 }
 
 void inst_func_decl(VM* vm, void* ptr)
@@ -1185,6 +1184,7 @@ void inst_call(VM* vm, void* ptr)
     {
         PANIC("Callee is not a function");
     }
+
     JSFunction* function = value.value.as_pointer;
     JSValue return_value;
     if (function->is_native)
@@ -1193,8 +1193,9 @@ void inst_call(VM* vm, void* ptr)
         {
             PANIC("Function holds not a valid pointer");
         }
-        JSValue* args = &vm->stats.stack[vm->stats.stack_counter - inst->operand];
-        return_value = function->native_function(vm, args, inst->operand);
+        JSValue* args = &vm->stats.stack[vm->stats.stack_counter - inst->operand - 1];
+        JSValue this = vm->stats.stack[vm->stats.stack_counter - inst->operand];
+        return_value = function->native_function(vm, this, args, inst->operand);
         vm->stats.stack_counter -= inst->operand;
     }
     else
@@ -1453,6 +1454,10 @@ JSValue vm_exec_function(VM* vm, JSFunction* function)
     vm->stats.instruction_counter = function->meta.instruction_start;
     vm->stats.stack_start = vm->stats.stack_counter;
     vm->scope = function->scope;
+
+    JSValue thisValue = vm->stats.stack[vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) - 1];
+    char* thisKey = init_string("this");
+    scope_declare(function->scope, thisKey, thisValue);
 
     while (vm->stats.instruction_counter < function->meta.instruction_end)
     {

@@ -168,7 +168,12 @@ pipe["CallExpression"] = (node: acorn.CallExpression, ctx: PipeContext) => {
     for (const argument of node.arguments.reverse()) {
         pipeNode(argument, ctx);
     }
-    pipeNode(node.callee, ctx);
+    if (node.callee.type == "MemberExpression") {
+        pipeMemberExpression(node.callee, ctx, true);
+    } else {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_UNDF));
+        pipeNode(node.callee, ctx);
+    }
     ctx.data.addInstruction(new Instruction(Opcodes.CALL).addOperand(new ConstantUNumberOperand(node.arguments.length, "short")));
 }
 
@@ -201,8 +206,11 @@ pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
     }
 }
 
-pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => {
+function pipeMemberExpression(node: acorn.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
     pipeNode(node.object, ctx);
+    if (doubleObject) {
+        ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+    }
     if (node.computed) {
         pipeNode(node.property, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
@@ -214,6 +222,8 @@ pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => {
     const idx: number = ctx.stringTable.registerString(node.property.name);
     ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
+
+pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => pipeMemberExpression(node, ctx, false);
 
 pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeContext) => {
     if (node.operator != "=") {
@@ -277,7 +287,7 @@ pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: acorn.Function
         if (param.type != "Identifier") {
             throw "Unsupported param type";
         }
-        ctx.data.addInstruction(new Instruction(Opcodes.LOAD_ARG).addOperand(new ConstantUNumberOperand(i, "short")));
+        ctx.data.addInstruction(new Instruction(Opcodes.LOAD_ARG).addOperand(new ConstantUNumberOperand(i + 1, "short")));
         const idx: number = ctx.stringTable.registerString(param.name);
         ctx.data.addInstruction(new Instruction(Opcodes.ALLOC_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
     }

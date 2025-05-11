@@ -180,7 +180,7 @@ export class EngineBuilder {
         const files: string[] = this.readdirSync(path.join(ENGINE_BASE, "core")).filter(file => file.endsWith(".c"));
         return files.map(file => ({
             directory: ENGINE_BASE,
-            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "core", path.basename(file) + ".o"), []),
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "core", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core")]),
             file: file,
         }));
     }
@@ -198,10 +198,11 @@ export class EngineBuilder {
     }
 
     private getLoaderCDF(): CDFItem[] {
-        const files: string[] = this.readdirSync(path.join(ENGINE_BASE, this.debug ? "debug" : "release")).filter(file => file.endsWith(".c"));
+        const base: string = path.join(ENGINE_BASE, this.debug ? "debug" : "release");
+        const files: string[] = this.readdirSync(base).filter(file => file.endsWith(".c"));
         return files.map(file => ({
             directory: ENGINE_BASE,
-            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "loader", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core")]),
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "loader", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", base]),
             file: file,
         }));
     }
@@ -250,10 +251,11 @@ export class EngineBuilder {
     }
 
     private getModuleCDF(module: string): CDFItem[] {
-        const files: string[] = this.readdirSync(path.join(ENGINE_BASE, "modules", module)).filter(file => file.endsWith(".c"));
+        const base: string = path.join(ENGINE_BASE, "modules", module);
+        const files: string[] = this.readdirSync(base).filter(file => file.endsWith(".c"));
         return files.map(file => ({
             directory: ENGINE_BASE,
-            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, `mod_${module}`, path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core")]),
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, `mod_${module}`, path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", base]),
             file: file
         }));
     }
