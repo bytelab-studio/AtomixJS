@@ -17,6 +17,10 @@ declare global {
 
     declare const module: Module;
 
+    interface ObjectPrototype {
+        readonly prototype: ObjectPrototype;
+    }
+
     interface Object {
         /**
          * Instantiate a new object of the given constructor.
@@ -24,6 +28,8 @@ declare global {
          * @param args - The parameters passed to the constructor function.
          */
         instantiate<T extends object>(constructor: Function, ...args: any[]): T;
+        
+        readonly prototype: ObjectPrototype;
     }
 
     declare const Object: Object;
@@ -40,6 +46,12 @@ declare global {
 
     declare const Array: Array;
 
+    interface FunctionPrototype {
+        call(thisValue: any, ...args: any[]);
+
+        readonly prototype: ObjectPrototype;
+    }
+
     interface Function {
         /**
          * Function constructor cannot be implemented
@@ -51,6 +63,8 @@ declare global {
          * because native JavaScript parsing cannot be fulfilled.
          */
         new (): never;
+
+        readonly prototype: FunctionPrototype;
     }
 
     declare const Function: Function;

@@ -92,13 +92,13 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
 
     JSObject* obj = object_create_object(constructor->base->prototype);
     object_set_property(obj, init_string("constructor"), constructor_wrapped);
-    scope_declare(constructor->scope, init_string("this"), JS_VALUE_OBJECT(obj));
     for (size_t i = 0; i < argc - 1; i++)
     {
         vm->stats.stack[vm->stats.stack_counter++] = args[i];
     }
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
     JSValue return_value = vm_exec_function(vm, constructor);
+    vm->stats.stack_counter -= argc;
     if (return_value.type == JS_OBJECT)
     {
         return return_value;
@@ -162,6 +162,23 @@ JSValue function(VM* vm, JSValue this, JSValue* args, size_t argc) {
     return JS_VALUE_UNDEFINED;
 }
 
+JSValue call(VM* vm, JSValue this, JSValue* args, size_t argc) {
+    if (this.type != JS_FUNC) {
+        // TODO throw execption
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSFunction* function = this.value.as_pointer;
+    for (size_t i = 1; i < argc; i++)
+    {
+        vm->stats.stack[vm->stats.stack_counter++] = args[i];
+    }
+    vm->stats.stack[vm->stats.stack_counter++] = argc == 0 ? JS_VALUE_UNDEFINED : args[0];
+    JSValue return_value = vm_exec_function(vm, function);
+    vm->stats.stack_counter -= argc;
+    return return_value;
+}
+
 void core_init(Scope* scope)
 {
     // Helper
@@ -199,4 +216,6 @@ void core_init(Scope* scope)
 
     scope_declare(scope, init_string("Function"), JS_VALUE_FUNCTION(_function));
 
+    JSFunction* _call = function_create_native_function(call);
+    object_set_property(_function->base->prototype, init_string("call"), JS_VALUE_FUNCTION(_call));
 }
