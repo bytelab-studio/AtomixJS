@@ -1196,12 +1196,12 @@ void inst_call(VM* vm, void* ptr)
         JSValue* args = &vm->stats.stack[vm->stats.stack_counter - inst->operand - 1];
         JSValue this = vm->stats.stack[vm->stats.stack_counter - inst->operand];
         return_value = function->native_function(vm, this, args, inst->operand);
-        vm->stats.stack_counter -= inst->operand;
+        vm->stats.stack_counter -= inst->operand + 1;
     }
     else
     {
         return_value = vm_exec_function(vm, function);
-        vm->stats.stack_counter -= inst->operand;
+        vm->stats.stack_counter -= inst->operand + 1;
     }
     vm->stats.stack[vm->stats.stack_counter++] = return_value;
 }
