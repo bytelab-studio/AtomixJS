@@ -1,6 +1,5 @@
 import * as acorn from "acorn";
 import * as esttraverse from "estraverse";
-import {StaticBlock} from "acorn";
 
 export function transformProgram(program: acorn.Program): void {
     if (!Array.isArray(program.body)) {
@@ -39,6 +38,9 @@ function transformNode(node: acorn.Node): acorn.Node {
             }
             if (node.type == "ClassDeclaration") {
                 return transformClassDeclaration(node as acorn.ClassDeclaration);
+            }
+            if (node.type == "ClassExpression") {
+                return transformClassExpression(node as acorn.ClassExpression);
             }
             return node;
         },
@@ -165,6 +167,48 @@ function transformForStatement(node: acorn.ForStatement): acorn.Node {
     return packNodes(nodes);
 }
 
+function transformClassExpression(node: acorn.ClassExpression): acorn.Node {
+    /*
+     * Before:
+     * const Foo = class {
+     *      constructor(bar) {
+     *          this.bar = bar;
+     *      }
+     *      myMethod() {
+     *          return this.bar;
+     *      }
+     *
+     *      static foo = 20;
+     *      static myStaticMethod() {
+     *          return Foo.foo;
+     *      }
+     * }
+     *
+     * After:
+     * const Foo = (function() {
+     *      function __C__(bar) {
+     *          this.bar = bar;
+     *      }
+     *      __C__.prototype.myMethod() {
+     *          return this.bar;
+     *      }
+     *      __C__.myStaticMethod = function() {
+     *          return Foo.foo;
+     *      }
+     *      __C__.foo = 20;
+     *      return __C__;
+     * })();
+     */
+    return transformClass(node, {
+        type: "Identifier",
+        name: "__C__",
+        start: node.start,
+        end: node.end,
+        loc: node.loc,
+        range: node.range
+    });
+}
+
 function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
     /*
      * Before:
@@ -197,6 +241,30 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
      *      return Foo;
      * })();
      */
+    const classDeclaration = transformClass(node, node.id);
+
+    return (<acorn.VariableDeclaration>{
+        type: "VariableDeclaration",
+        kind: "const",
+        declarations: [
+            (<acorn.VariableDeclarator>{
+                type: "VariableDeclarator",
+                id: node.id,
+                init: classDeclaration,
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            })
+        ],
+        start: node.start,
+        end: node.end,
+        loc: node.loc,
+        range: node.range
+    });
+}
+
+function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, identifier: acorn.Identifier): acorn.Expression {
     const constructorMethod: acorn.MethodDefinition | undefined = node.body.body.find(node =>
         node.type == "MethodDefinition" &&
         node.kind == "constructor") as acorn.MethodDefinition | undefined;
@@ -205,9 +273,9 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
     const staticMethods: acorn.MethodDefinition[] = node.body.body.filter(node => node.type == "MethodDefinition" && node.kind == "method" && node.static) as acorn.MethodDefinition[];
     const properties = node.body.body.filter(node => node.type == "PropertyDefinition" && !node.static && node.value) as acorn.PropertyDefinition[];
     const staticProperties = node.body.body.filter(node => node.type == "PropertyDefinition" && node.static && node.value) as acorn.PropertyDefinition[];
-    const staticBlocks: StaticBlock[] = node.body.body.filter(node => node.type == "StaticBlock");
+    const staticBlocks: acorn.StaticBlock[] = node.body.body.filter(node => node.type == "StaticBlock");
 
-    const classDeclaration: acorn.CallExpression = (<acorn.CallExpression>{
+    return (<acorn.CallExpression>{
         type: "CallExpression",
         callee: (<acorn.FunctionExpression>{
             type: "FunctionExpression",
@@ -218,7 +286,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                 body: [
                     (<acorn.FunctionDeclaration>{
                         type: "FunctionDeclaration",
-                        id: node.id,
+                        id: identifier,
                         params: constructorMethod ? constructorMethod.value.params : [],
                         body: (<acorn.BlockStatement>{
                             type: "BlockStatement",
@@ -279,7 +347,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                                 type: "MemberExpression",
                                 object: (<acorn.MemberExpression>{
                                     type: "MemberExpression",
-                                    object: node.id,
+                                    object: identifier,
                                     property: (<acorn.Identifier>{
                                         type: "Identifier",
                                         name: "prototype",    
@@ -321,7 +389,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                             type: "AssignmentExpression",
                             left: (<acorn.MemberExpression>{
                                 type: "MemberExpression",
-                                object: node.id,
+                                object: identifier,
                                 property: method.key,
                                 computed: method.key.type != "Identifier",
                                 optional: false,
@@ -348,7 +416,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                             type: "AssignmentExpression",
                             left: (<acorn.MemberExpression>{
                                 type: "MemberExpression",
-                                object: node.id,
+                                object: identifier,
                                 property: property.key,
                                 computed: property.key.type != "Identifier",
                                 optional: false,
@@ -372,7 +440,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
                     ...staticBlocks.map(node => node.body).flat(),
                     (<acorn.ReturnStatement>{
                         type: "ReturnStatement",
-                        argument: node.id,
+                        argument: identifier,
                         start: node.start,
                         end: node.end,
                         loc: node.loc,
@@ -394,26 +462,6 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
         }),
         arguments: [],
         optional: false,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    });
-
-    return (<acorn.VariableDeclaration>{
-        type: "VariableDeclaration",
-        kind: "const",
-        declarations: [
-            (<acorn.VariableDeclarator>{
-                type: "VariableDeclarator",
-                id: node.id,
-                init: classDeclaration,
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            })
-        ],
         start: node.start,
         end: node.end,
         loc: node.loc,
