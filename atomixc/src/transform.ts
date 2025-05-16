@@ -27,6 +27,9 @@ function transformNode(node: acorn.Node): acorn.Node {
         // @ts-ignore
         enter(node) {
             console.log("Enter %s", node.type);
+            if (node.type == "ExpressionStatement" && node.expression.type == "Literal" && typeof node.expression.value == "string" && node.expression.value == "use strict") {
+                return packNodes([]);
+            }
             if (node.type == "AssignmentExpression") {
                 return transformAssignmentExpression(node as acorn.AssignmentExpression);
             }
