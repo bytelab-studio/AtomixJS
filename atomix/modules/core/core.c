@@ -101,6 +101,19 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
     return JS_VALUE_OBJECT(obj);
 }
 
+JSValue create(VM* vm, JSValue this, JSValue* args, size_t argc) {
+    if (argc == 0) {
+        return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
+    }
+    
+    if (args[0].type != JS_OBJECT) {
+        // TODO throw exception
+        return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
+    }
+
+    return JS_VALUE_OBJECT(object_create_object((JSObject*)args[0].value.as_pointer));
+}
+
 JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     JSObject* arr = object_create_object(object_get_array_prototype());
@@ -188,6 +201,9 @@ void core_init(Scope* scope)
 
     JSFunction* _instantiate = function_create_native_function(instantiate);
     object_set_property(_object->base, init_string("instantiate"), JS_VALUE_FUNCTION(_instantiate));
+
+    JSFunction* _create = function_create_native_function(create);
+    object_set_property(_object->base, init_string("create"), JS_VALUE_FUNCTION(_create));
 
     scope_declare(scope, init_string("Object"), JS_VALUE_FUNCTION(_object));
 

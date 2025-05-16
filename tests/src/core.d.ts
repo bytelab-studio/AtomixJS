@@ -28,6 +28,17 @@ declare global {
          * @param args - The parameters passed to the constructor function.
          */
         instantiate<T extends object>(constructor: Function, ...args: any[]): T;
+
+        /**
+         * Creates a new object with the Object prototype as parent.
+         */
+        create(): object;
+
+        /**
+         * Creates a new object with the given prototype as parent.
+         * @param prototype - The prototype of the new object.
+         */
+        create(prototype: object): object;
         
         readonly prototype: ObjectPrototype;
     }

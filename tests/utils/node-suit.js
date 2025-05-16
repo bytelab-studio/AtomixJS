@@ -44,6 +44,14 @@ Object.instantiate = function (constructor, ...args) {
     return new constructor(...args);
 }
 
+const _create = Object.create;
+Object.create = function (proto) {
+    if (!proto) {
+        return {}
+    }
+    return _create(proto);
+}
+
 if (process.argv.length < 2) {
     throw "Missing argument";
 }
