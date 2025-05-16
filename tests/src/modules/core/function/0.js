@@ -1,3 +1,4 @@
+"use strict"
 function foo() {
     print(this);
 }
