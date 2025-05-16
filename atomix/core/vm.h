@@ -1,6 +1,7 @@
 #ifndef VM_H
 #define VM_H
 
+#include "module.h"
 #include "instruction.h"
 #include "scope.h"
 

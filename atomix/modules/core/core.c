@@ -82,7 +82,7 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
         return JS_VALUE_UNDEFINED;
     }
 
-    JSValue constructor_wrapped = args[argc - 1];
+    JSValue constructor_wrapped = args[0];
     if (constructor_wrapped.type != JS_FUNC)
     {
         // TODO throw exception
@@ -92,13 +92,7 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
 
     JSObject* obj = object_create_object(constructor->base->prototype);
     object_set_property(obj, init_string("constructor"), constructor_wrapped);
-    for (size_t i = 0; i < argc - 1; i++)
-    {
-        vm->stats.stack[vm->stats.stack_counter++] = args[i];
-    }
-    vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
-    JSValue return_value = vm_exec_function(vm, constructor);
-    vm->stats.stack_counter -= argc;
+    JSValue return_value = api_call_function(vm, constructor, JS_VALUE_OBJECT(obj), args + 1, argc - 1);
     if (return_value.type == JS_OBJECT)
     {
         return return_value;
@@ -169,14 +163,10 @@ JSValue call(VM* vm, JSValue this, JSValue* args, size_t argc) {
     }
 
     JSFunction* function = this.value.as_pointer;
-    for (size_t i = 1; i < argc; i++)
-    {
-        vm->stats.stack[vm->stats.stack_counter++] = args[i];
+    if (argc == 0) {
+        return api_call_function(vm, function, JS_VALUE_UNDEFINED, args, argc);
     }
-    vm->stats.stack[vm->stats.stack_counter++] = argc == 0 ? JS_VALUE_UNDEFINED : args[0];
-    JSValue return_value = vm_exec_function(vm, function);
-    vm->stats.stack_counter -= argc;
-    return return_value;
+    return api_call_function(vm, function, args[0], args + 1, argc - 1);
 }
 
 void core_init(Scope* scope)
