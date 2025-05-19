@@ -91,7 +91,6 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
     JSFunction* constructor = constructor_wrapped.value.as_pointer;
 
     JSObject* obj = object_create_object(constructor->base->prototype);
-    object_set_property(obj, init_string("constructor"), constructor_wrapped);
     JSValue return_value = api_call_function(vm, constructor, JS_VALUE_OBJECT(obj), args + 1, argc - 1);
     if (return_value.type == JS_OBJECT)
     {

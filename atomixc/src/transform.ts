@@ -278,6 +278,92 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
     const staticProperties = node.body.body.filter(node => node.type == "PropertyDefinition" && node.static && node.value) as acorn.PropertyDefinition[];
     const staticBlocks: acorn.StaticBlock[] = node.body.body.filter(node => node.type == "StaticBlock");
 
+    const extendsNodes: acorn.Statement[] = [];
+    if (node.superClass) {
+        extendsNodes.push(
+            (<acorn.ExpressionStatement>{
+                type: "ExpressionStatement",
+                expression: (<acorn.AssignmentExpression>{
+                    type: "AssignmentExpression",
+                    left: (<acorn.MemberExpression>{
+                        type: "MemberExpression",
+                        object: identifier,
+                        property: (<acorn.Identifier>{
+                            type: "Identifier",
+                            name: "prototype",
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    }),
+                    operator: "=",
+                    right: (<acorn.CallExpression>{
+                        type: "CallExpression",
+                        callee: (<acorn.MemberExpression>{
+                            type: "MemberExpression",
+                            object: (<acorn.Identifier>{
+                                type: "Identifier",
+                                name: "Object",
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            }),
+                            property: (<acorn.Identifier>{
+                                type: "Identifier",
+                                name: "create",
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            }),
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        arguments: [
+                            (<acorn.MemberExpression>{
+                                type: "MemberExpression",
+                                object: node.superClass,
+                                property: (<acorn.Identifier>{
+                                    type: "Identifier",
+                                    name: "prototype",
+                                    start: node.start,
+                                    end: node.end,
+                                    loc: node.loc,
+                                    range: node.range
+                                }),
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            })
+                        ],
+                        optional: false,
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range,
+                    }),
+                    start: node.start,
+                    end: node.end,
+                    loc: node.loc,
+                    range: node.range
+                }),
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            }),
+        );
+    }
+
     return (<acorn.CallExpression>{
         type: "CallExpression",
         callee: (<acorn.FunctionExpression>{
@@ -342,6 +428,54 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                         loc: node.loc,
                         range: node.range
                     }),
+                    ...extendsNodes,
+                    (<acorn.ExpressionStatement>{
+                        type: "ExpressionStatement",
+                        expression: (<acorn.AssignmentExpression>{
+                            type: "AssignmentExpression",
+                            left: (<acorn.MemberExpression>{
+                                type: "MemberExpression",
+                                object: (<acorn.MemberExpression>{
+                                    type: "MemberExpression",
+                                    object: identifier,
+                                    property: (<acorn.Identifier>{
+                                        type: "Identifier",
+                                        name: "prototype",
+                                        start: node.start,
+                                        end: node.end,
+                                        loc: node.loc,
+                                        range: node.range
+                                    }),
+                                    start: node.start,
+                                    end: node.end,
+                                    loc: node.loc,
+                                    range: node.range
+                                }),
+                                property: (<acorn.Identifier>{
+                                    type: "Identifier",
+                                    name: "constructor",
+                                    start: node.start,
+                                    end: node.end,
+                                    loc: node.loc,
+                                    range: node.range
+                                }),
+                                start: node.start,
+                                end: node.end,
+                                loc: node.loc,
+                                range: node.range
+                            }),
+                            operator: "=",
+                            right: identifier,
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    }),
                     ...methods.map(method => (<acorn.ExpressionStatement>{
                         type: "ExpressionStatement",
                         expression: (<acorn.AssignmentExpression>{
@@ -359,8 +493,6 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                                         loc: node.loc,
                                         range: node.range
                                     }),
-                                    computed: false,
-                                    optional: false,
                                     start: node.start,
                                     end: node.end,
                                     loc: node.loc,
