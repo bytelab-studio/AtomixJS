@@ -366,12 +366,54 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                 loc: node.loc,
                 range: node.range
             }),
+            (<acorn.ExpressionStatement>{
+                type: "ExpressionStatement",
+                expression: (<acorn.CallExpression>{
+                    type: "CallExpression",
+                    callee: (<acorn.MemberExpression>{
+                        type: "MemberExpression",
+                        object: (<acorn.Identifier>{
+                            type: "Identifier",
+                            name: "Object",
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        property: (<acorn.Identifier>{
+                            type: "Identifier",
+                            name: "setPrototypeOf",
+                            start: node.start,
+                            end: node.end,
+                            loc: node.loc,
+                            range: node.range
+                        }),
+                        start: node.start,
+                        end: node.end,
+                        loc: node.loc,
+                        range: node.range
+                    }),
+                    arguments: [
+                        identifier,
+                        node.superClass
+                    ],
+                    optional: false,
+                    start: node.start,
+                    end: node.end,
+                    loc: node.loc,
+                    range: node.range
+                }),
+                start: node.start,
+                end: node.end,
+                loc: node.loc,
+                range: node.range
+            })
         );
         if (constructorMethod) {
             const supperCallIdx: number = constructorMethod.value.body.body
-                .findIndex(sth => 
-                    sth.type == "ExpressionStatement" && 
-                    sth.expression.type == "CallExpression" && 
+                .findIndex(sth =>
+                    sth.type == "ExpressionStatement" &&
+                    sth.expression.type == "CallExpression" &&
                     sth.expression.callee.type == "Super"
                 );
             if (supperCallIdx == -1) {
@@ -391,12 +433,12 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                             start: superCallExpression.start,
                             end: superCallExpression.end,
                             loc: superCallExpression.loc,
-                            range: superCallExpression.range              
+                            range: superCallExpression.range
                         }),
                         start: superCallExpression.start,
                         end: superCallExpression.end,
                         loc: superCallExpression.loc,
-                        range: superCallExpression.range     
+                        range: superCallExpression.range
                     }),
                     arguments: [
                         (<acorn.ThisExpression>{
@@ -404,7 +446,7 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                             start: superCallExpression.start,
                             end: superCallExpression.end,
                             loc: superCallExpression.loc,
-                            range: superCallExpression.range         
+                            range: superCallExpression.range
                         }),
                         ...superCallExpression.arguments
                     ],
@@ -412,12 +454,12 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                     start: superCallExpression.start,
                     end: superCallExpression.end,
                     loc: superCallExpression.loc,
-                    range: superCallExpression.range    
+                    range: superCallExpression.range
                 }),
                 start: superCallExpression.start,
                 end: superCallExpression.end,
                 loc: superCallExpression.loc,
-                range: superCallExpression.range    
+                range: superCallExpression.range
             });
         }
     }
@@ -545,7 +587,7 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                                     object: identifier,
                                     property: (<acorn.Identifier>{
                                         type: "Identifier",
-                                        name: "prototype",    
+                                        name: "prototype",
                                         start: node.start,
                                         end: node.end,
                                         loc: node.loc,

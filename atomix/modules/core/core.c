@@ -91,7 +91,8 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
     JSFunction* constructor = constructor_wrapped.value.as_pointer;
     
     JSValue prototype_wrapped = object_get_property(constructor->base, "prototype");
-    if (prototype_wrapped.type != JS_OBJECT) {
+    if (prototype_wrapped.type != JS_OBJECT)
+    {
         // TODO throw exception
         return JS_VALUE_UNDEFINED;
     }
@@ -106,17 +107,45 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
     return JS_VALUE_OBJECT(obj);
 }
 
-JSValue create(VM* vm, JSValue this, JSValue* args, size_t argc) {
-    if (argc == 0) {
+JSValue create(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (argc == 0)
+    {
         return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
     }
     
-    if (args[0].type != JS_OBJECT) {
+    if (args[0].type != JS_OBJECT)
+    {
         // TODO throw exception
         return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
     }
 
     return JS_VALUE_OBJECT(object_create_object((JSObject*)args[0].value.as_pointer));
+}
+
+JSValue setPrototypeOf(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (argc < 2)
+    {
+        return JS_VALUE_UNDEFINED;
+    }
+
+    if ((args[0].type != JS_OBJECT && args[0].type != JS_FUNC) ||
+        (args[1].type != JS_OBJECT && args[1].type != JS_FUNC))
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSObject* target = args[0].type == JS_OBJECT
+        ? (JSObject*)args[0].value.as_pointer
+        : ((JSFunction*)args[0].value.as_pointer)->base;
+    JSObject* prototype = args[1].type == JS_OBJECT
+        ? (JSObject*)args[1].value.as_pointer
+        : ((JSFunction*)args[1].value.as_pointer)->base;
+
+    target->prototype = prototype;
+    return JS_VALUE_UNDEFINED;
 }
 
 JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
@@ -209,6 +238,9 @@ void core_init(Scope* scope)
 
     JSFunction* _create = function_create_native_function(create);
     object_set_property(_object->base, init_string("create"), JS_VALUE_FUNCTION(_create));
+
+    JSFunction* _setPrototypeOf = function_create_native_function(setPrototypeOf);
+    object_set_property(_object->base, init_string("setPrototypeOf"), JS_VALUE_FUNCTION(_setPrototypeOf));
 
     scope_declare(scope, init_string("Object"), JS_VALUE_FUNCTION(_object));
 
