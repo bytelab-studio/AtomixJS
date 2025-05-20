@@ -89,8 +89,14 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
         return JS_VALUE_UNDEFINED;
     }
     JSFunction* constructor = constructor_wrapped.value.as_pointer;
+    
+    JSValue prototype_wrapped = object_get_property(constructor->base, "prototype");
+    if (prototype_wrapped.type != JS_OBJECT) {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
 
-    JSObject* obj = object_create_object(constructor->base->prototype);
+    JSObject* obj = object_create_object((JSObject*)prototype_wrapped.value.as_pointer);
     JSValue return_value = api_call_function(vm, constructor, JS_VALUE_OBJECT(obj), args + 1, argc - 1);
     if (return_value.type == JS_OBJECT)
     {

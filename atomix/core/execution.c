@@ -1249,8 +1249,8 @@ void inst_obj_store(VM* vm, void* ptr)
     }
     char* key = string_table_load_str(&vm->module.string_table, inst->operand);
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : (JSObject*)obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : (JSObject*)obj.value.as_pointer;
     object_set_property(obj_ptr, key, value);
 }
 
@@ -1268,8 +1268,8 @@ void inst_obj_load(VM* vm, void* ptr)
     }
     char* key = string_table_load_str(&vm->module.string_table, inst->operand);
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : (JSObject*)obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : (JSObject*)obj.value.as_pointer;
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
     js_free(key);
 }
@@ -1287,8 +1287,8 @@ void inst_obj_cload(VM* vm, void* ptr)
         PANIC("Target is not a object");
     }
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : obj.value.as_pointer;
     char* key = value_to_string(&value);
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
     js_free(key);
@@ -1309,8 +1309,8 @@ void inst_obj_cstore(VM* vm, void* ptr)
     }
     char* key = value_to_string(&computed);
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : (JSObject*)obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : (JSObject*)obj.value.as_pointer;
     object_set_property(obj_ptr, key, value);
 }
 
@@ -1473,8 +1473,8 @@ JSValue vm_exec_function(VM* vm, JSFunction* function)
         vm_exec(vm);
     }
     JSValue return_value = vm->stats.stack_counter > vm->stats.stack_start
-                               ? vm->stats.stack[--vm->stats.stack_counter]
-                               : JS_VALUE_UNDEFINED;
+        ? vm->stats.stack[--vm->stats.stack_counter]
+        : JS_VALUE_UNDEFINED;
 
     vm->module = current_module;
     vm->stats = stats;

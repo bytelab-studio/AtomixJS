@@ -19,11 +19,6 @@ void object_set_property(JSObject* obj, char* key, JSValue value)
 
 JSValue object_get_property(JSObject* obj, char* key)
 {
-    if (strcmp(key, "prototype") == 0) 
-    {
-        return JS_VALUE_OBJECT(obj->prototype);
-    }
-
     JSValue* value = dict_get(obj->properties, key);
     if (value)
     {
@@ -73,6 +68,7 @@ JSObject* function_prototype = NULL;
 
 JSObject* object_get_function_prototype()
 {
+    // TODO assign constructor etc.
     if (!function_prototype)
     {
         function_prototype = object_create_object(object_get_object_prototype());
