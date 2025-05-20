@@ -285,6 +285,10 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
 
     const extendsNodes: acorn.Statement[] = [];
     if (node.superClass) {
+        if (node.superClass.type != "Identifier") {
+            throw "SuperClass must be an identifier";
+        }
+
         extendsNodes.push(
             (<acorn.ExpressionStatement>{
                 type: "ExpressionStatement",
