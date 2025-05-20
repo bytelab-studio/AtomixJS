@@ -89,7 +89,7 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
         return JS_VALUE_UNDEFINED;
     }
     JSFunction* constructor = constructor_wrapped.value.as_pointer;
-    
+
     JSValue prototype_wrapped = object_get_property(constructor->base, "prototype");
     if (prototype_wrapped.type != JS_OBJECT)
     {
@@ -113,7 +113,7 @@ JSValue create(VM* vm, JSValue this, JSValue* args, size_t argc)
     {
         return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
     }
-    
+
     if (args[0].type != JS_OBJECT)
     {
         // TODO throw exception
