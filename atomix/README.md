@@ -4,7 +4,6 @@
 
 ```text
 atomix/
-├── CMakeLists.txt       # Root CMake file to handle the build process
 ├── core/                # Core SourceCode actual VM definition
 ├── modules/             # Domain specific modules
 │   └── core/            # Core module for exposing VM functionalities
@@ -14,37 +13,70 @@ atomix/
 
 ## Building
 
+### Install zig
+
+It is required to have the zig toolchain installed. You can either install it globally and add it to the global enviromnent or install it locally into the `/zig` folder of the project root.
+
+### Compile the compiler
+
+The next step is to compile typescript project with tsc. Therfore go into the `/atomixc` folder and run:
+ 
+```sh
+npm install
+npm install -g typescript # (when not installed)
+tsc
+```
+
+### Activate the environment
+
+Last thing to do is to activate the project environment by import the init script into your session. On Windows PowerShell is required for the usage.
+
+
+```sh
+. ./env/init.sh # or init.ps1 on windows
+```
+
+If everything is sucesfully you should see the `(atomixc)` prefix in you CLI prompt.
+
+Following things happend when init file is imported:
+1. A atomixc alias is created that targets the JavaScript output file atomixc.js in the `/atomixc/dist/bin` folder.
+2. If a local `/zig` folder exist it will be added to PATH variable
+
+> **NOTE:** All changes are only affected for the CLI-session re-open the session will reset all things.
+
+### Enable IntelliSense
+
+AtomixJS uses it own build system. To still support the major range of editors. `atomixc` can generated a compilation database format file (cdf file) which must editors support.
+
+The file can be generated with the following command:
+```sh
+atomixc engine cdf -o <dst_path>
+```
+
+Most editors require additonal configuration like custom commands
+
 ### Build development suit
 
-This configuration links all available modules automatically:
+To build the project enter the follwoing commands in any directory. (I prefer the `/atomix/` folder)
 
-```shell
-mkdir ./cmake-build-debug
-cmake -S . -B cmake-build-debug
-cmake --build cmake-build-debug --config Debug --target atomix -j 14
+```sh
+atomixc engine init -p <platform> -a <arch>
 ```
 
-### Build production suit
+replace `<platform>` with `linux` or `ẁindows` and `<arch>` with `x86_64` or `arm64` according to your target system. After the build a `.atomix` folder appears with the current build state.
 
-Specify which modules to include in the build process:
+The executable can be found under `./.atomix/bin/Debug/<platform>-<arch>/runner(.exe)`
 
-```shell
-mkdir ./cmake-build-debug
-cmake -S . -B cmake-build-debug
-cmake --build cmake-build-debug --config Debug --target prod -DMOD_CORE=ON
-```
+### Build production suit (Currently not possible)
 
-### Linking behavior
+With the current build-system not possible
 
-Each module is compiled into a static archive (`.a`). To ensure that all object files from the specified modules are
-included in the final executable, we use the `--whole-archive` linker option:
+### Compiling behavior
 
-```cmake
-target_link_options(atomix PRIVATE -Wl,--whole-archive mod_core -Wl,--no-whole-archive)
-```
+The folder `core`, `modules/**` are compiled into a static archive (`.a`).
+Then based on the configuration one of the loader (`debug` or `release`) is also compiled into a static archive. Additonally a module information file that is dynamicly generated will be compiled into an object.
 
-This ensures that symbols from all object files in `mod_core` are preserved and linked, even if they are not directly
-referenced in the code.
+Last but not least everything is linked into a executable
 
 ## Adding a New Module
 
@@ -61,54 +93,32 @@ To add a new module to the project, follow these steps:
 
 - By creating this new folder, a new module is automatically initialized by the build system. The module will be
   included in the compilation process depending on the build configuration.
-- The module will automatically be loaded during compilation, and if the appropriate option is set for production (`MOD_
-  {MODULE_NAME}`), it will be linked to the executable.
+- The module will automatically be loaded during compilation, and if the appropriate option is set for the production executable.
 
-### 3. Create a `CMakeLists.txt` in the Module Folder
+### 3. Create a `mod.json` in the Module Folder
 
-- Inside the newly created module folder, you must create a `CMakeLists.txt` file to define the module as a static
-  library.
-- The static library should be named `mod_{MODULE_NAME}`, where `{MODULE_NAME}` is the name of your folder in
-  lowercase (e.g., `mod_my_module`).
+- Inside the newly created module folder, you must create a `mod.json` file for configure your module.
 
-Example `CMakeLists.txt` for the new module:
+Example `mod.json` for the new module:
 
-```cmake
-# modules/my_module/CMakeLists.txt
-add_library(mod_my_module STATIC my_mod.c)
-
-# Link the core static library
-target_link_libraries(mod_my_module PRIVATE core)
+```json
+{
+    "loader": ["my_loader"]
+}
 ```
 
-### 4. Linking the Module
+The new module will be automatically linked with the static core library during the build process.
 
-- The new module will be automatically linked with the core library during both the debug and production builds,
-  provided the corresponding option (`MOD_{MODULE_NAME}`) is set during CMake configuration.
-- The flag used to enable a module for production builds must be in **uppercase**.
+### 5. Define an Entry Point
 
-For example, to enable the `my_module` module in the production build, you would pass the following option when running
-CMake:
-
-cmake .. -DMOD_MY_MODULE=ON --target prod
-
-### 5. Define an Entry Point with `MODULE_INIT`
-
-- Somewhere in the code of your module, you need to use the `MODULE_INIT` macro to define an entry point for the module.
-  This entry point is where you can add native functions or manipulate the VM infrastructure.
-- The `MODULE_INIT` macro allows the initialization function to be placed in a special section, ensuring it is properly
-  included during compilation.
-
-Example of using the `MODULE_INIT` macro:
+We can now define our entry point of the module it is required that all loader items defined in `mod.json` are defined and external accessible in the module source code
 
 ```c++
-#include "api.h"  // Include core module
+#include "api.h"
 
 // Declaration of the initialization function
-void my_module_init(VM* vm, Scope* scope) {
+void my_loader(VM* vm, Scope* scope) {
     // Add native functions or manipulate VM infrastructure here
 }
 
-// Register the initialization function in the module section
-MODULE_INIT(my_module_init);
 ```
