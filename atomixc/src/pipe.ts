@@ -207,10 +207,22 @@ pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
 }
 
 function pipeMemberExpression(node: acorn.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
-    pipeNode(node.object, ctx);
-    if (doubleObject) {
-        ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+    if (node.object.type == "Super") {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
+        
+        if (doubleObject) {
+            ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+        }
+        
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_PROTO));
+    } else {
+        pipeNode(node.object, ctx);
+
+        if (doubleObject) {
+            ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+        }
     }
+
     if (node.computed) {
         pipeNode(node.property, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
