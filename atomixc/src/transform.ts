@@ -23,10 +23,14 @@ function packNodes(nodes: acorn.Node[]): acorn.Node {
 }
 
 function transformNode(node: acorn.Node): acorn.Node {
+    let ident: number = 0;
+
     return esttraverse.replace(node as any, {
+        ident: 0,
         // @ts-ignore
         enter(node) {
-            console.log("Enter %s", node.type);
+            console.log(`${" ".repeat(ident*4)}Enter ${node.type}`);
+            ident++;
             if (node.type == "ExpressionStatement" && node.expression.type == "Literal" && typeof node.expression.value == "string" && node.expression.value == "use strict") {
                 return packNodes([]);
             }
@@ -48,7 +52,8 @@ function transformNode(node: acorn.Node): acorn.Node {
             return node;
         },
         leave(node) {
-            console.log("Leave %s", node.type);
+            ident--;
+            console.log(`${" ".repeat(ident*4)}Leave ${node.type}`);
         }
     }) as acorn.Node;
 }
@@ -362,6 +367,59 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
                 range: node.range
             }),
         );
+        if (constructorMethod) {
+            const supperCallIdx: number = constructorMethod.value.body.body
+                .findIndex(sth => 
+                    sth.type == "ExpressionStatement" && 
+                    sth.expression.type == "CallExpression" && 
+                    sth.expression.callee.type == "Super"
+                );
+            if (supperCallIdx == -1) {
+                throw "Super call must exist in a class that extends another one";
+            }
+            const superCallExpression: acorn.CallExpression = (<acorn.CallExpression>(<acorn.ExpressionStatement>constructorMethod.value.body.body[supperCallIdx]).expression);
+            constructorMethod.value.body.body[supperCallIdx] = (<acorn.ExpressionStatement>{
+                type: "ExpressionStatement",
+                expression: (<acorn.CallExpression>{
+                    type: "CallExpression",
+                    callee: (<acorn.MemberExpression>{
+                        type: "MemberExpression",
+                        object: node.superClass,
+                        property: (<acorn.Identifier>{
+                            type: "Identifier",
+                            name: "call",
+                            start: superCallExpression.start,
+                            end: superCallExpression.end,
+                            loc: superCallExpression.loc,
+                            range: superCallExpression.range              
+                        }),
+                        start: superCallExpression.start,
+                        end: superCallExpression.end,
+                        loc: superCallExpression.loc,
+                        range: superCallExpression.range     
+                    }),
+                    arguments: [
+                        (<acorn.ThisExpression>{
+                            type: "ThisExpression",
+                            start: superCallExpression.start,
+                            end: superCallExpression.end,
+                            loc: superCallExpression.loc,
+                            range: superCallExpression.range         
+                        }),
+                        ...superCallExpression.arguments
+                    ],
+                    optional: false,
+                    start: superCallExpression.start,
+                    end: superCallExpression.end,
+                    loc: superCallExpression.loc,
+                    range: superCallExpression.range    
+                }),
+                start: superCallExpression.start,
+                end: superCallExpression.end,
+                loc: superCallExpression.loc,
+                range: superCallExpression.range    
+            });
+        }
     }
 
     return (<acorn.CallExpression>{
