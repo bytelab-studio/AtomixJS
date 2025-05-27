@@ -11,9 +11,8 @@ environments.
 
 AtomixJS is split into two core components:
 
-- **Compiler**: Written in TypeScript, the compiler leverages [acornJS](https://github.com/acornjs/acorn) for parsing
-  and [estraverse](https://github.com/estools/estraverse) for AST manipulation. Its primary function is to translate
-  JavaScript code into ByteCode.
+- **Compiler**: Written in TypeScript, the compiler leverages [@babel](https://babeljs.io) for parsing. Its primary 
+  function is to translate JavaScript code into ByteCode.
 - **Virtual Machine (VM)**: Implemented in C99, the VM is built with minimal dependencies (relying only on `libc`) to
   provide a lightweight and portable runtime environment for executing the compiled ByteCode.
 
