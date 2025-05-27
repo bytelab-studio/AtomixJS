@@ -29,7 +29,7 @@ jobs:
       - name: Set archive info
         id: set-artifact-name
         run: |
-          FILE_NAME="zig-${{ matrix.platform }}-${{ matrix.arch}}-${{ steps.get-version.outputs.zig_version }}"
+          FILE_NAME="zig-${{ matrix.arch}}-${{ matrix.platform }}-${{ steps.get-version.outputs.zig_version }}"
           EXT="tar.xz"
           [[ ${{ matrix.platform }} == "windows" ]] && EXT="zip"
 
