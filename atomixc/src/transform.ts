@@ -1,114 +1,52 @@
-import * as acorn from "acorn";
-import * as esttraverse from "estraverse";
+import traverse, {type NodePath} from "@babel/traverse";
+import * as nodes from "@babel/types";
 
-export function transformProgram(program: acorn.Program): void {
-    if (!Array.isArray(program.body)) {
-        return;
-    }
-
-    for (let i = 0; i < program.body.length; i++) {
-        program.body[i] = transformNode(program.body[i]) as any;
-    }
+export function transformFile(file: nodes.File): void {
+    transformNode(file);
 }
 
-function packNodes(nodes: acorn.Node[]): acorn.Node {
-    return (<acorn.BlockStatement>({
-        type: "BlockStatement",
-        body: nodes,
-        start: 0,
-        end: 0,
-        // Virtual block to ignore PUSH_SCOPE and POP_SCOPE instructions
-        virtual: true
-    }));
+
+function packNodes(_nodes: nodes.Statement[]): nodes.BlockStatement {
+    const sth: nodes.BlockStatement = nodes.blockStatement(_nodes);
+    // Virtual block to ignore PUSH_SCOPE and POP_SCOPE instructions
+    (sth as any).virtual = true;
+    return sth;
 }
 
-function transformNode(node: acorn.Node): acorn.Node {
-    return esttraverse.replace(node as any, {
-        // @ts-ignore
-        enter(node) {
-            console.log("Enter %s", node.type);
-            if (node.type == "AssignmentExpression") {
-                return transformAssignmentExpression(node as acorn.AssignmentExpression);
-            }
-            if (node.type == "ForStatement") {
-                return transformForStatement(node as acorn.ForStatement);
-            }
-            return node;
+function transformNode(file: nodes.File): void {
+    traverse(file, {
+        enter(ctx: NodePath<nodes.Node>): void {
+            console.log("Enter %s", ctx.type);
         },
-        leave(node) {
-            console.log("Leave %s", node.type);
+        AssignmentExpression(ctx: NodePath<nodes.AssignmentExpression>): void {
+            if (ctx.node.operator == "=") {
+                return;
+            }
+            const binaryExpression: nodes.BinaryExpression = nodes.binaryExpression(
+                ctx.node.operator.substring(0, ctx.node.operator.length - 1) as nodes.BinaryExpression["operator"],
+                ctx.node.left as nodes.Expression,
+                ctx.node.right
+            );
+            ctx.replaceWith(nodes.assignmentExpression(
+                "=",
+                ctx.node.left,
+                binaryExpression
+            ));
+        },
+        ForStatement(ctx: NodePath<nodes.ForStatement>): void {
+            if (ctx.node.init) {
+                ctx.insertBefore(ctx.node.init);
+            }
+            const test: nodes.Expression = ctx.node.test
+                ? ctx.node.test
+                : nodes.booleanLiteral(true);
+
+            const body: nodes.Node = ctx.node.update
+                ? packNodes([
+                    ctx.node.body,
+                    nodes.expressionStatement(ctx.node.update)
+                ]) : ctx.node.body;
+            ctx.replaceWith(nodes.whileStatement(test, body));
         }
-    }) as acorn.Node;
-}
-
-function transformAssignmentExpression(node: acorn.AssignmentExpression): acorn.Node {
-    if (node.operator == "=") {
-        return node;
-    }
-
-    const binaryExpression = (<acorn.BinaryExpression>{
-        type: "BinaryExpression",
-        left: node.left,
-        operator: node.operator.substring(0, node.operator.length - 1) as acorn.BinaryOperator,
-        right: node.right,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
     });
-    return (<acorn.AssignmentExpression>{
-        type: "AssignmentExpression",
-        left: node.left,
-        operator: "=",
-        right: binaryExpression,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    });
-}
-
-function transformForStatement(node: acorn.ForStatement) {
-    const nodes: acorn.Node[] = [];
-    if (node.init) {
-        nodes.push(node.init);
-    }
-
-    const test: acorn.Expression = node.test
-        ? node.test
-        : (<acorn.Literal>{
-            type: "Literal",
-            value: true,
-            raw: "true",
-            start: node.start,
-            end: node.end,
-            loc: node.loc,
-            range: node.range
-        });
-
-    const body: acorn.Node = node.update
-        ? packNodes([
-            node.body,
-            (<acorn.ExpressionStatement>{
-                type: "ExpressionStatement",
-                expression: node.update,
-                start: node.update.start,
-                end: node.update.end,
-                loc: node.update.loc,
-                range: node.update.range
-            })
-        ]) : node.body;
-
-    nodes.push((<acorn.WhileStatement>{
-        type: "WhileStatement",
-        test: test,
-        body: body,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    }));
-
-
-    return packNodes(nodes);
 }
