@@ -46,7 +46,7 @@ Following things happend when init file is imported:
 
 ### Enable IntelliSense
 
-AtomixJS uses it own build system. To still support the major range of editors. `atomixc` can generated a compilation database format file (cdf file) which must editors support.
+AtomixJS uses it own build system. To still support the major range of editors. `atomixc` can generated a compilation database format file (cdf file) which most editors support.
 
 The file can be generated with the following command:
 ```sh
