@@ -61,8 +61,9 @@ The project is organized into two primary directories:
 
 - `/atomixc` \
   Contains the TypeScript source code for the compiler. It utilizes:
-    - [acornJS](https://github.com/acornjs/acorn): For parsing JavaScript
-    - [estraverse](https://github.com/estools/estraverse): For traversing and manipulating the AST.
+    - [@babel/parser](https://babeljs.io/docs/babel-parser): For parsing JavaScript
+    - [@babel/traverse](https://babeljs.io/docs/babel-traverse): For traversing and manipulating the AST.
+    - [@babel/types](https://babeljs.io/docs/babel-types): As utility package for easy node instantiation/manipulation
 - `/atomix` \
   Contains the C99 source code for the Virtual Machine. The VM is designed to be minimalistic by relying solely on the C
   standard library (`libc`), ensuring a lean and efficient runtime.
