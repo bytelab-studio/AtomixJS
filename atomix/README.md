@@ -53,7 +53,7 @@ The file can be generated with the following command:
 atomixc engine cdf -o <dst_path>
 ```
 
-Most editors require additonal configuration like custom commands
+Most editors require additonal configuration like custom compiler definiton.
 
 ### Build development suit
 
