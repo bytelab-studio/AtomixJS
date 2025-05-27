@@ -208,13 +208,16 @@ pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
 
 function pipeMemberExpression(node: acorn.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
     if (node.object.type == "Super") {
-        ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
-        
+        const obj: acorn.ExtendedSuper = node.object as acorn.ExtendedSuper;
         if (doubleObject) {
-            ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+            ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
         }
-        
-        ctx.data.addInstruction(new Instruction(Opcodes.LD_PROTO));
+        const superClassIdx: number = ctx.stringTable.registerString(obj.superClass.name);
+        ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(superClassIdx, "short")));
+        if (!obj.inStaticMethod) {
+            const prototypeIdx: number = ctx.stringTable.registerString("prototype");
+            ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(prototypeIdx, "short")));
+        }
     } else {
         pipeNode(node.object, ctx);
 

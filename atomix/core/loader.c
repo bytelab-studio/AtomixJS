@@ -95,7 +95,6 @@ void* load_instruction(const char* buff, size_t* start_position)
             break;
         }
     case OP_LD_THIS:
-    case OP_LD_PROTO:
     case OP_ADD:
     case OP_MINUS:
     case OP_MUL:

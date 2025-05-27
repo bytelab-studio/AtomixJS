@@ -1,13 +1,23 @@
 import * as acorn from "acorn";
 import * as esttraverse from "estraverse";
 
+declare module "acorn" {
+    interface ExtendedSuper extends Super {
+        superClass: Identifier;
+        inStaticMethod: boolean;
+    }
+}
+
 export function transformProgram(program: acorn.Program): void {
     if (!Array.isArray(program.body)) {
         return;
     }
 
     for (let i = 0; i < program.body.length; i++) {
-        program.body[i] = transformNode(program.body[i]) as any;
+        program.body[i] = transformNode1Cycle(program.body[i]) as any;
+    }
+    for (let i = 0; i < program.body.length; i++) {
+        program.body[i] = transformNode2Cycle(program.body[i]) as any;
     }
 }
 
@@ -22,8 +32,17 @@ function packNodes(nodes: acorn.Node[]): acorn.Node {
     }));
 }
 
-function transformNode(node: acorn.Node): acorn.Node {
+interface TransformContext {
+    superClass?: acorn.Identifier;
+    inStaticMethod: boolean;
+}
+
+function transformNode1Cycle(node: acorn.Node): acorn.Node {
     let ident: number = 0;
+    const ctx: TransformContext = {
+        superClass: undefined,
+        inStaticMethod: false
+    }
 
     return esttraverse.replace(node as any, {
         ident: 0,
@@ -40,15 +59,66 @@ function transformNode(node: acorn.Node): acorn.Node {
             if (node.type == "NewExpression") {
                 return transformNewExpression(node as acorn.NewExpression);
             }
+            if (node.type == "Super") {
+                return transformSuperExpression(ctx, node as acorn.Super);
+            }
             if (node.type == "ForStatement") {
                 return transformForStatement(node as acorn.ForStatement);
             }
+            if (node.type == "ClassDeclaration" || node.type == "ClassExpression") {
+                if (node.superClass && node.superClass.type == "Identifier") {
+                    ctx.superClass = node.superClass as acorn.Identifier;
+                }
+                return node;
+            }
+            if (node.type == "MethodDefinition") {
+                ctx.inStaticMethod = node.static;
+                return node;
+            }
+            if (node.type == "StaticBlock") {
+                ctx.inStaticMethod = true;
+                return node;
+            }
+            
+            return node;
+        },
+        leave(node) {
+            ident--;
+            console.log(`${" ".repeat(ident*4)}Leave ${node.type}`);
+        }
+    }) as acorn.Node;
+}
+
+
+function transformNode2Cycle(node: acorn.Node): acorn.Node {
+    let ident: number = 0;
+    const ctx: TransformContext = {
+        superClass: undefined,
+        inStaticMethod: false
+    }
+
+    return esttraverse.replace(node as any, {
+        ident: 0,
+        // @ts-ignore
+        enter(node) {
+            console.log(`${" ".repeat(ident*4)}Enter ${node.type}`);
+            ident++;
+            
             if (node.type == "ClassDeclaration") {
-                return transformClassDeclaration(node as acorn.ClassDeclaration);
+                return transformClassDeclaration(ctx, node as acorn.ClassDeclaration);
             }
             if (node.type == "ClassExpression") {
-                return transformClassExpression(node as acorn.ClassExpression);
+                return transformClassExpression(ctx, node as acorn.ClassExpression);
             }
+            if (node.type == "MethodDefinition") {
+                ctx.inStaticMethod = node.static;
+                return node;
+            }
+            if (node.type == "StaticBlock") {
+                ctx.inStaticMethod = true;
+                return node;
+            }
+
             return node;
         },
         leave(node) {
@@ -130,6 +200,15 @@ function transformNewExpression(node: acorn.NewExpression): acorn.Node {
     });
 }
 
+function transformSuperExpression(ctx: TransformContext, node: acorn.Super): acorn.Node {
+    if (!ctx.superClass) {
+        throw "Missing superClass context";
+    }
+    (node as acorn.ExtendedSuper).superClass = ctx.superClass;
+    (node as acorn.ExtendedSuper).inStaticMethod = ctx.inStaticMethod;
+    return node;
+}
+
 function transformForStatement(node: acorn.ForStatement): acorn.Node {
     const nodes: acorn.Node[] = [];
     if (node.init) {
@@ -175,7 +254,7 @@ function transformForStatement(node: acorn.ForStatement): acorn.Node {
     return packNodes(nodes);
 }
 
-function transformClassExpression(node: acorn.ClassExpression): acorn.Node {
+function transformClassExpression(ctx: TransformContext, node: acorn.ClassExpression): acorn.Node {
     /*
      * Before:
      * const Foo = class {
@@ -207,7 +286,7 @@ function transformClassExpression(node: acorn.ClassExpression): acorn.Node {
      *      return __C__;
      * })();
      */
-    return transformClass(node, {
+    return transformClass(ctx, node, {
         type: "Identifier",
         name: "__C__",
         start: node.start,
@@ -217,7 +296,7 @@ function transformClassExpression(node: acorn.ClassExpression): acorn.Node {
     });
 }
 
-function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
+function transformClassDeclaration(ctx: TransformContext, node: acorn.ClassDeclaration): acorn.Node {
     /*
      * Before:
      * class Foo {
@@ -249,7 +328,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
      *      return Foo;
      * })();
      */
-    const classDeclaration = transformClass(node, node.id);
+    const classDeclaration = transformClass(ctx, node, node.id);
 
     return (<acorn.VariableDeclaration>{
         type: "VariableDeclaration",
@@ -272,7 +351,7 @@ function transformClassDeclaration(node: acorn.ClassDeclaration): acorn.Node {
     });
 }
 
-function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, identifier: acorn.Identifier): acorn.Expression {
+function transformClass(ctx: TransformContext, node: acorn.ClassDeclaration | acorn.ClassExpression, identifier: acorn.Identifier): acorn.Expression {
     const constructorMethod: acorn.MethodDefinition | undefined = node.body.body.find(node =>
         node.type == "MethodDefinition" &&
         node.kind == "constructor") as acorn.MethodDefinition | undefined;
@@ -288,6 +367,7 @@ function transformClass(node: acorn.ClassDeclaration | acorn.ClassExpression, id
         if (node.superClass.type != "Identifier") {
             throw "SuperClass must be an identifier";
         }
+        ctx.superClass = node.superClass;
 
         extendsNodes.push(
             (<acorn.ExpressionStatement>{
