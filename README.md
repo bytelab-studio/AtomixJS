@@ -1,5 +1,7 @@
 # AtomixJS
 
+[![CI](https://github.com/bytelab-studio/AtomixJS/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/bytelab-studio/AtomixJS/actions/workflows/ci.yml)
+
 AtomixJS is a lightweight JavaScript runtime designed specifically for PC-like systems (Windows, Linux, MacOS) running
 on 64-bit architectures. By compiling JavaScript into ByteCode rather than using dynamic interpretation methods like
 `eval`, AtomixJS emphasizes efficiency, predictability, and a clear separation between browser JavaScript and desktop
@@ -9,9 +11,8 @@ environments.
 
 AtomixJS is split into two core components:
 
-- **Compiler**: Written in TypeScript, the compiler leverages [acornJS](https://github.com/acornjs/acorn) for parsing
-  and [estraverse](https://github.com/estools/estraverse) for AST manipulation. Its primary function is to translate
-  JavaScript code into ByteCode.
+- **Compiler**: Written in TypeScript, the compiler leverages [@babel](https://babeljs.io) for parsing. Its primary 
+  function is to translate JavaScript code into ByteCode.
 - **Virtual Machine (VM)**: Implemented in C99, the VM is built with minimal dependencies (relying only on `libc`) to
   provide a lightweight and portable runtime environment for executing the compiled ByteCode.
 
@@ -61,8 +62,9 @@ The project is organized into two primary directories:
 
 - `/atomixc` \
   Contains the TypeScript source code for the compiler. It utilizes:
-    - [acornJS](https://github.com/acornjs/acorn): For parsing JavaScript
-    - [estraverse](https://github.com/estools/estraverse): For traversing and manipulating the AST.
+    - [@babel/parser](https://babeljs.io/docs/babel-parser): For parsing JavaScript
+    - [@babel/traverse](https://babeljs.io/docs/babel-traverse): For traversing and manipulating the AST.
+    - [@babel/types](https://babeljs.io/docs/babel-types): As utility package for easy node instantiation/manipulation
 - `/atomix` \
   Contains the C99 source code for the Virtual Machine. The VM is designed to be minimalistic by relying solely on the C
   standard library (`libc`), ensuring a lean and efficient runtime.

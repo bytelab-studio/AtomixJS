@@ -1,4 +1,4 @@
-import * as acorn from "acorn";
+import type * as nodes from "@babel/types";
 import {DataSectionBuilder} from "./format/data";
 import {StringTableBuilder} from "./format/string-table";
 import {ConstantDoubleOperand, ConstantIntegerOperand, ConstantUNumberOperand, Instruction, Opcodes} from "./opcodes";
@@ -10,7 +10,7 @@ export interface PipeContext {
     stringTable: StringTableBuilder;
 }
 
-export function beginPipe(program: acorn.Program, ctx: PipeContext) {
+export function beginPipe(program: nodes.Program, ctx: PipeContext) {
     pipeNode(program, ctx);
 }
 
@@ -21,7 +21,7 @@ function pipeNode(node: any, ctx: PipeContext) {
     pipe[node.type](node, ctx);
 }
 
-pipe["Program"] = (node: acorn.Program, ctx: PipeContext) => {
+pipe["Program"] = (node: nodes.Program, ctx: PipeContext) => {
     for (const item of node.body) {
         pipeNode(item, ctx);
         if (item.type == "FunctionDeclaration") {
@@ -30,37 +30,32 @@ pipe["Program"] = (node: acorn.Program, ctx: PipeContext) => {
     }
 }
 
-pipe["Literal"] = (node: acorn.Literal, ctx: PipeContext) => {
-    if (node.value == null) {
-        ctx.data.addInstruction(new Instruction(Opcodes.LD_NULL));
-        return;
-    }
+pipe["StringLiteral"] = (node: nodes.StringLiteral, ctx: PipeContext) => {
+    const idx: number = ctx.stringTable.registerString(node.value);
+    ctx.data.addInstruction(new Instruction(Opcodes.LD_STRING).addOperand(new ConstantUNumberOperand(idx, "short")));
+}
 
-    switch (typeof node.value) {
-        case "string":
-            const idx = ctx.stringTable.registerString(node.value);
-            ctx.data.addInstruction(new Instruction(Opcodes.LD_STRING).addOperand(new ConstantUNumberOperand(idx, "short")));
-            break;
-        case "number":
-            if (node.value % 1 == 0) {
-                ctx.data.addInstruction(new Instruction(Opcodes.LD_INT).addOperand(new ConstantIntegerOperand(node.value)));
-            } else {
-                ctx.data.addInstruction(new Instruction(Opcodes.LD_DOUBLE).addOperand(new ConstantDoubleOperand(node.value)));
-            }
-            break;
-        case "boolean":
-            if (node.value) {
-                ctx.data.addInstruction(new Instruction(Opcodes.LD_TRUE));
-            } else {
-                ctx.data.addInstruction(new Instruction(Opcodes.LD_FALSE));
-            }
-            break;
-        default:
-            throw "Unsupported literal type" + typeof node.value;
+pipe["NumericLiteral"] = (node: nodes.NumericLiteral, ctx: PipeContext) => {
+    if (node.value % 1 == 0) {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_INT).addOperand(new ConstantIntegerOperand(node.value)));
+    } else {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_DOUBLE).addOperand(new ConstantDoubleOperand(node.value)));
     }
 }
 
-pipe["Identifier"] = (node: acorn.Identifier, ctx: PipeContext) => {
+pipe["BooleanLiteral"] = (node: nodes.BooleanLiteral, ctx: PipeContext) => {
+    if (node.value) {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_TRUE));
+    } else {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_FALSE));
+    }
+}
+
+pipe["NullLiteral"] = (node: nodes.NullLiteral, ctx: PipeContext) => {
+    ctx.data.addInstruction(new Instruction(Opcodes.LD_NULL));
+}
+
+pipe["Identifier"] = (node: nodes.Identifier, ctx: PipeContext) => {
     if (node.name == "undefined") {
         ctx.data.addInstruction(new Instruction(Opcodes.LD_UNDF));
         return;
@@ -69,16 +64,16 @@ pipe["Identifier"] = (node: acorn.Identifier, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
-pipe["ThisExpression"] = (node: acorn.ThisExpression, ctx: PipeContext) => {
+pipe["ThisExpression"] = (node: nodes.ThisExpression, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
 }
 
-pipe["ExpressionStatement"] = (node: acorn.ExpressionStatement, ctx: PipeContext) => {
+pipe["ExpressionStatement"] = (node: nodes.ExpressionStatement, ctx: PipeContext) => {
     pipeNode(node.expression, ctx);
     ctx.data.addInstruction(new Instruction(Opcodes.POP));
 }
 
-pipe["BinaryExpression"] = (node: acorn.BinaryExpression, ctx: PipeContext) => {
+pipe["BinaryExpression"] = (node: nodes.BinaryExpression, ctx: PipeContext) => {
     pipeNode(node.left, ctx);
     pipeNode(node.right, ctx);
     switch (node.operator) {
@@ -138,7 +133,7 @@ pipe["BinaryExpression"] = (node: acorn.BinaryExpression, ctx: PipeContext) => {
     }
 }
 
-pipe["UnaryExpression"] = (node: acorn.UnaryExpression, ctx: PipeContext) => {
+pipe["UnaryExpression"] = (node: nodes.UnaryExpression, ctx: PipeContext) => {
     // TODO think about delete and '+' operator
     pipeNode(node.argument, ctx);
 
@@ -164,7 +159,7 @@ pipe["UnaryExpression"] = (node: acorn.UnaryExpression, ctx: PipeContext) => {
     }
 }
 
-pipe["CallExpression"] = (node: acorn.CallExpression, ctx: PipeContext) => {
+pipe["CallExpression"] = (node: nodes.CallExpression, ctx: PipeContext) => {
     for (const argument of node.arguments.reverse()) {
         pipeNode(argument, ctx);
     }
@@ -177,9 +172,9 @@ pipe["CallExpression"] = (node: acorn.CallExpression, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.CALL).addOperand(new ConstantUNumberOperand(node.arguments.length, "short")));
 }
 
-pipe["ObjectExpression"] = (node: acorn.ObjectExpression, ctx: PipeContext) => {
+pipe["ObjectExpression"] = (node: nodes.ObjectExpression, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.OBJ_ALLOC));
-    for (const property of node.properties as acorn.Property[]) {
+    for (const property of node.properties as nodes.Property[]) {
         if (property.key.type != "Identifier") {
             throw "Undefined key type";
         }
@@ -190,7 +185,7 @@ pipe["ObjectExpression"] = (node: acorn.ObjectExpression, ctx: PipeContext) => {
     }
 }
 
-pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
+pipe["ArrayExpression"] = (node: nodes.ArrayExpression, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.ARR_ALLOC));
     ctx.data.addInstruction(new Instruction(Opcodes.DUP));
     const lengthIdx = ctx.stringTable.registerString("length");
@@ -206,15 +201,18 @@ pipe["ArrayExpression"] = (node: acorn.ArrayExpression, ctx: PipeContext) => {
     }
 }
 
-function pipeMemberExpression(node: acorn.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
+function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
     if (node.object.type == "Super") {
-        const obj: acorn.ExtendedSuper = node.object as acorn.ExtendedSuper;
+        const obj: nodes.Super = node.object;
+        if (!obj.extra || !obj.extra.targetClass || !obj.extra.isStatic) {
+            throw "Missing meta data";
+        }
         if (doubleObject) {
             ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
         }
-        const superClassIdx: number = ctx.stringTable.registerString(obj.superClass.name);
+        const superClassIdx: number = ctx.stringTable.registerString(obj.extra.targetClass as string);
         ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(superClassIdx, "short")));
-        if (!obj.inStaticMethod) {
+        if (!obj.extra.isStatic) {
             const prototypeIdx: number = ctx.stringTable.registerString("prototype");
             ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(prototypeIdx, "short")));
         }
@@ -225,22 +223,11 @@ function pipeMemberExpression(node: acorn.MemberExpression, ctx: PipeContext, do
             ctx.data.addInstruction(new Instruction(Opcodes.DUP));
         }
     }
-
-    if (node.computed) {
-        pipeNode(node.property, ctx);
-        ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
-        return;
-    }
-    if (node.property.type != "Identifier") {
-        throw "Undefined property";
-    }
-    const idx: number = ctx.stringTable.registerString(node.property.name);
-    ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
-pipe["MemberExpression"] = (node: acorn.MemberExpression, ctx: PipeContext) => pipeMemberExpression(node, ctx, false);
+pipe["MemberExpression"] = (node: nodes.MemberExpression, ctx: PipeContext) => pipeMemberExpression(node, ctx, false);
 
-pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeContext) => {
+pipe["AssignmentExpression"] = (node: nodes.AssignmentExpression, ctx: PipeContext) => {
     if (node.operator != "=") {
         throw "Unsupported operator";
     }
@@ -271,13 +258,13 @@ pipe["AssignmentExpression"] = (node: acorn.AssignmentExpression, ctx: PipeConte
     }
 }
 
-pipe["VariableDeclaration"] = (node: acorn.VariableDeclaration, ctx: PipeContext) => {
+pipe["VariableDeclaration"] = (node: nodes.VariableDeclaration, ctx: PipeContext) => {
     for (const declarator of node.declarations) {
         pipeNode(declarator, ctx);
     }
 }
 
-pipe["VariableDeclarator"] = (node: acorn.VariableDeclarator, ctx: PipeContext) => {
+pipe["VariableDeclarator"] = (node: nodes.VariableDeclarator, ctx: PipeContext) => {
     if (node.init) {
         pipeNode(node.init, ctx);
     } else {
@@ -292,13 +279,13 @@ pipe["VariableDeclarator"] = (node: acorn.VariableDeclarator, ctx: PipeContext) 
     }
 }
 
-pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: acorn.FunctionDeclaration | acorn.FunctionExpression, ctx: PipeContext) => {
+pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: nodes.FunctionDeclaration | nodes.FunctionExpression, ctx: PipeContext) => {
     const funcStart: number = ctx.data.addInstruction(new Instruction(Opcodes.NOP));
     const idx: number = node.id
         ? ctx.stringTable.registerString(node.id.name)
         : -1;
     for (let i: number = 0; i < node.params.length; i++) {
-        const param: acorn.Pattern = node.params[i];
+        const param: nodes.Identifier | nodes.Pattern | nodes.RestElement = node.params[i];
         if (param.type != "Identifier") {
             throw "Unsupported param type";
         }
@@ -322,8 +309,8 @@ pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: acorn.Function
     }
 }
 
-pipe["BlockStatement"] = (node: acorn.BlockStatement, ctx: PipeContext) => {
-    if (!("virtual" in node) || !node.virtual) {
+pipe["BlockStatement"] = (node: nodes.BlockStatement, ctx: PipeContext) => {
+    if (!node.extra || !node.extra.isVirtual) {
         ctx.data.addInstruction(new Instruction(Opcodes.PUSH_SCOPE));
     }
     for (const item of node.body) {
@@ -332,12 +319,12 @@ pipe["BlockStatement"] = (node: acorn.BlockStatement, ctx: PipeContext) => {
             ctx.data.addInstruction(new Instruction(Opcodes.POP));
         }
     }
-    if (!("virtual" in node) || !node.virtual) {
+    if (!node.extra || !node.extra.isVirtual) {
         ctx.data.addInstruction(new Instruction(Opcodes.POP_SCOPE));
     }
 }
 
-pipe["ReturnStatement"] = (node: acorn.ReturnStatement, ctx: PipeContext) => {
+pipe["ReturnStatement"] = (node: nodes.ReturnStatement, ctx: PipeContext) => {
     if (node.argument) {
         pipeNode(node.argument, ctx);
     }
@@ -345,7 +332,7 @@ pipe["ReturnStatement"] = (node: acorn.ReturnStatement, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.RETURN));
 }
 
-pipe["IfStatement"] = (node: acorn.IfStatement, ctx: PipeContext) => {
+pipe["IfStatement"] = (node: nodes.IfStatement, ctx: PipeContext) => {
     pipeNode(node.test, ctx);
     const jmpToElseOrEnd: number = ctx.data.addInstruction(new Instruction(Opcodes.NOP));
     pipeNode(node.consequent, ctx);
@@ -364,7 +351,7 @@ pipe["IfStatement"] = (node: acorn.IfStatement, ctx: PipeContext) => {
     }
 }
 
-pipe["WhileStatement"] = (node: acorn.WhileStatement, ctx: PipeContext) => {
+pipe["WhileStatement"] = (node: nodes.WhileStatement, ctx: PipeContext) => {
     /*
         0: <condition>
         1: jmp_f 4
@@ -381,42 +368,56 @@ pipe["WhileStatement"] = (node: acorn.WhileStatement, ctx: PipeContext) => {
     ctx.data.replaceInstruction(jmpEnd, new Instruction(Opcodes.JMP_F).addOperand(new ConstantUNumberOperand(ctx.data.getCount(), "short")));
 }
 
-pipe["ExportNamedDeclaration"] = (node: acorn.ExportNamedDeclaration, ctx: PipeContext) => {
+pipe["ExportNamedDeclaration"] = (node: nodes.ExportNamedDeclaration, ctx: PipeContext) => {
     if (node.declaration) {
         pipeNode(node.declaration, ctx);
+
         if (node.declaration.type == "VariableDeclaration") {
             for (const declarator of node.declaration.declarations) {
                 if (declarator.id.type != "Identifier") {
                     throw "Unexpected variable id";
                 }
+
                 pipeNode(declarator.id, ctx);
                 const idx: number = ctx.stringTable.registerString(declarator.id.name);
                 ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
             }
-        } else {
+        } else if (node.declaration.type == "FunctionDeclaration" || node.declaration.type == "ClassDeclaration") {
+            if (!node.declaration.id) {
+                throw "Missing declaration id";
+            }
             const idx: number = ctx.stringTable.registerString(node.declaration.id.name);
             ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
+        } else {
+            throw "Unsupported declaration type";
         }
     }
 
     for (const specifier of node.specifiers) {
-        pipeNode(specifier.local, ctx);
-
-        let exportIdx: number;
-        if (specifier.exported.type == "Literal") {
-            if (typeof specifier.exported.value != "string") {
-                throw "Expected a string";
-            }
-            exportIdx = ctx.stringTable.registerString(specifier.exported.value);
-        } else {
-            exportIdx = ctx.stringTable.registerString(specifier.exported.name);
+        if (specifier.type == "ExportSpecifier") {
+            pipeNode(specifier.local, ctx);
+            const exportIdx: number = specifier.exported.type == "StringLiteral"
+                ? ctx.stringTable.registerString(specifier.exported.value)
+                : ctx.stringTable.registerString(specifier.exported.name);
+            ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
+            continue;
         }
 
+        if (specifier.type == "ExportDefaultSpecifier") {
+            pipeNode(node.declaration, ctx);
+            // TODO may use a symbol for default exports
+            const exportIdx: number = ctx.stringTable.registerString("default");
+            ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
+            continue
+        }
+
+        pipeNode(specifier.exported, ctx);
+        const exportIdx: number = ctx.stringTable.registerString(specifier.exported.name);
         ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
     }
 }
 
-pipe["ExportDefaultDeclaration"] = (node: acorn.ExportDefaultDeclaration, ctx: PipeContext) => {
+pipe["ExportDefaultDeclaration"] = (node: nodes.ExportDefaultDeclaration, ctx: PipeContext) => {
     pipeNode(node.declaration, ctx);
     // TODO may use a symbol for default exports
     const idx: number = ctx.stringTable.registerString("default");

@@ -1,781 +1,359 @@
-import * as acorn from "acorn";
-import * as esttraverse from "estraverse";
+import traverse, {type NodePath} from "@babel/traverse";
+import * as nodes from "@babel/types";
 
-declare module "acorn" {
-    interface ExtendedSuper extends Super {
-        superClass: Identifier;
-        inStaticMethod: boolean;
-    }
+export function transformFile(file: nodes.File): void {
+    transformPreNode(file);
+    transformPostNode(file);
 }
 
-export function transformProgram(program: acorn.Program): void {
-    if (!Array.isArray(program.body)) {
-        return;
-    }
 
-    for (let i = 0; i < program.body.length; i++) {
-        program.body[i] = transformNode1Cycle(program.body[i]) as any;
+function packNodes(_nodes: nodes.Statement[]): nodes.BlockStatement {
+    const sth: nodes.BlockStatement = nodes.blockStatement(_nodes);
+    // Virtual block to ignore PUSH_SCOPE and POP_SCOPE instructions
+    if (!sth.extra) {
+        sth.extra = {};
     }
-    for (let i = 0; i < program.body.length; i++) {
-        program.body[i] = transformNode2Cycle(program.body[i]) as any;
-    }
+    sth.extra.virtual = true;
+    return sth;
 }
 
-function packNodes(nodes: acorn.Node[]): acorn.Node {
-    return (<acorn.BlockStatement>({
-        type: "BlockStatement",
-        body: nodes,
-        start: 0,
-        end: 0,
-        // Virtual block to ignore PUSH_SCOPE and POP_SCOPE instructions
-        virtual: true
-    }));
-}
-
-interface TransformContext {
-    superClass?: acorn.Identifier;
-    inStaticMethod: boolean;
-}
-
-function transformNode1Cycle(node: acorn.Node): acorn.Node {
-    let ident: number = 0;
-    const ctx: TransformContext = {
-        superClass: undefined,
-        inStaticMethod: false
-    }
-
-    return esttraverse.replace(node as any, {
-        ident: 0,
-        // @ts-ignore
-        enter(node) {
-            console.log(`${" ".repeat(ident*4)}C1:Enter ${node.type}`);
-            ident++;
-            if (node.type == "ExpressionStatement" && node.expression.type == "Literal" && typeof node.expression.value == "string" && node.expression.value == "use strict") {
-                return packNodes([]);
-            }
-            if (node.type == "AssignmentExpression") {
-                return transformAssignmentExpression(node as acorn.AssignmentExpression);
-            }
-            if (node.type == "NewExpression") {
-                return transformNewExpression(node as acorn.NewExpression);
-            }
-            if (node.type == "Super") {
-                return transformSuperExpression(ctx, node as acorn.Super);
-            }
-            if (node.type == "ForStatement") {
-                return transformForStatement(node as acorn.ForStatement);
-            }
-            if (node.type == "ClassDeclaration" || node.type == "ClassExpression") {
-                if (node.superClass && node.superClass.type == "Identifier") {
-                    ctx.superClass = node.superClass as acorn.Identifier;
-                }
-                return node;
-            }
-            if (node.type == "MethodDefinition") {
-                ctx.inStaticMethod = node.static;
-                return node;
-            }
-            if (node.type == "StaticBlock") {
-                ctx.inStaticMethod = true;
-                return node;
-            }
-            
-            return node;
+function transformPreNode(file: nodes.File): void {
+    traverse(file, {
+        enter(ctx: NodePath<nodes.Node>): void {
+            console.log("C1:Enter %s", ctx.type);
         },
-        leave(node) {
-            ident--;
-            console.log(`${" ".repeat(ident*4)}C1:Leave ${node.type}`);
-        }
-    }) as acorn.Node;
-}
-
-
-function transformNode2Cycle(node: acorn.Node): acorn.Node {
-    let ident: number = 0;
-    const ctx: TransformContext = {
-        superClass: undefined,
-        inStaticMethod: false
-    }
-
-    return esttraverse.replace(node as any, {
-        ident: 0,
-        // @ts-ignore
-        enter(node) {
-            console.log(`${" ".repeat(ident*4)}C2:Enter ${node.type}`);
-            ident++;
-            
-            if (node.type == "ClassDeclaration") {
-                return transformClassDeclaration(ctx, node as acorn.ClassDeclaration);
+        ExpressionStatement(ctx: NodePath<nodes.ExpressionStatement>): void {
+            if (ctx.node.expression.type == "StringLiteral" && ctx.node.expression.value == "use strict") {
+                ctx.remove();
             }
-            if (node.type == "ClassExpression") {
-                return transformClassExpression(ctx, node as acorn.ClassExpression);
-            }
-
-            return node;
         },
-        leave(node) {
-            ident--;
-            console.log(`${" ".repeat(ident*4)}C2:Leave ${node.type}`);
+        CallExpression(ctx: NodePath<nodes.CallExpression>): void {
+            if (ctx.node.callee.type != "Super") {
+                return;
+            }
+            /*
+             * Before:
+             * super(arg0, arg1, argN)
+             *
+             * After:
+             * SuperClass.call(this, arg0, arg1, argN)
+             */
+            const classContext: NodePath<nodes.ClassDeclaration | nodes.ClassExpression> | null = ctx.findParent(node => node.type == "ClassDeclaration" || node.type == "ClassExpression") as NodePath<nodes.ClassDeclaration | nodes.ClassExpression> | null;
+            if (!classContext) {
+                throw "Missing class context";
+            }
+            if (!classContext.node.superClass) {
+                throw "Class has no superClass";
+            }
+            if (classContext.node.superClass.type != "Identifier") {
+                throw "SuperClass must be an identifier";
+            }
+            ctx.replaceWith(nodes.callExpression(
+                nodes.memberExpression(
+                    classContext.node.superClass,
+                    nodes.identifier("call")
+                ),
+                [
+                    nodes.thisExpression(),
+                    ...ctx.node.arguments
+                ]
+            ));
+        },
+        Super(ctx: NodePath<nodes.Super>): void {
+            const isStatic: boolean = !!ctx.findParent(node => node.node.type == "ClassMethod" && node.node.static || node.node.type == "StaticBlock");
+            const classContext: NodePath<nodes.ClassDeclaration | nodes.ClassExpression> | null = ctx.findParent(node => node.type == "ClassDeclaration" || node.type == "ClassExpression") as NodePath<nodes.ClassDeclaration | nodes.ClassExpression> | null;
+            if (!classContext) {
+                throw "Missing class context";
+            }
+            if (!classContext.node.superClass) {
+                throw "Class has no superClass";
+            }
+            if (classContext.node.superClass.type != "Identifier") {
+                throw "SuperClass must be an identifier";
+            }
+            if (!ctx.node.extra) {
+                ctx.node.extra = {};
+            }
+            ctx.node.extra.isStatic = isStatic;
+            ctx.node.extra.targetName = classContext.node.superClass.name;
         }
-    }) as acorn.Node;
-}
-
-function transformAssignmentExpression(node: acorn.AssignmentExpression): acorn.Node {
-    if (node.operator == "=") {
-        return node;
-    }
-
-    const binaryExpression = (<acorn.BinaryExpression>{
-        type: "BinaryExpression",
-        left: node.left,
-        operator: node.operator.substring(0, node.operator.length - 1) as acorn.BinaryOperator,
-        right: node.right,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    });
-    return (<acorn.AssignmentExpression>{
-        type: "AssignmentExpression",
-        left: node.left,
-        operator: "=",
-        right: binaryExpression,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
     });
 }
 
-function transformNewExpression(node: acorn.NewExpression): acorn.Node {
-    /*
-        Before:
-        new Person(1, 2, 3)
+function transformPostNode(file: nodes.File): void {
+    traverse(file, {
+        enter(ctx: NodePath<nodes.Node>): void {
+            console.log("C2:Enter %s", ctx.type);
+        },
+        AssignmentExpression(ctx: NodePath<nodes.AssignmentExpression>): void {
+            if (ctx.node.operator == "=") {
+                return;
+            }
+            const binaryExpression: nodes.BinaryExpression = nodes.binaryExpression(
+                ctx.node.operator.substring(0, ctx.node.operator.length - 1) as nodes.BinaryExpression["operator"],
+                ctx.node.left as nodes.Expression,
+                ctx.node.right
+            );
+            ctx.replaceWith(nodes.assignmentExpression(
+                "=",
+                ctx.node.left,
+                binaryExpression
+            ));
+        },
+        ForStatement(ctx: NodePath<nodes.ForStatement>): void {
+            if (ctx.node.init) {
+                ctx.insertBefore(ctx.node.init);
+            }
+            const test: nodes.Expression = ctx.node.test
+                ? ctx.node.test
+                : nodes.booleanLiteral(true);
 
-        After:
-        Object.instantiate(Person, 1, 2, 3)
-     */
-    return (<acorn.CallExpression>{
-        type: "CallExpression",
-        callee: (<acorn.MemberExpression>{
-            type: "MemberExpression",
-            computed: false,
-            object: (<acorn.Identifier>{
-                type: "Identifier",
-                name: "Object",
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            }),
-            property: (<acorn.Identifier>{
-                type: "Identifier",
-                name: "instantiate",
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            }),
-            start: node.start,
-            end: node.end,
-            loc: node.loc,
-            range: node.range
-        }),
-        arguments: [
-            node.callee,
-            ...node.arguments
-        ],
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
+            const body: nodes.Node = ctx.node.update
+                ? packNodes([
+                    ctx.node.body,
+                    nodes.expressionStatement(ctx.node.update)
+                ]) : ctx.node.body;
+            ctx.replaceWith(nodes.whileStatement(test, body));
+        },
+        NewExpression(ctx: NodePath<nodes.NewExpression>): void {
+            /*
+             * Before:
+             * new Person(1, 2, 3)
+             *
+             * After:
+             * Object.instantiate(Person, 1, 2, 3)
+             */
+            ctx.replaceWith(nodes.callExpression(
+                nodes.memberExpression(
+                    nodes.identifier("Object"),
+                    nodes.identifier("instantiate")
+                ),
+                [
+                    ctx.node.callee as nodes.Expression,
+                    ...ctx.node.arguments
+                ]
+            ));
+        },
+        ClassExpression(ctx: NodePath<nodes.ClassExpression>): void {
+            /*
+             * Before:
+             * const Foo = class {
+             *      constructor(bar) {
+             *          this.bar = bar;
+             *      }
+             *      myMethod() {
+             *          return this.bar;
+             *      }
+             *
+             *      static foo = 20;
+             *      static myStaticMethod() {
+             *          return Foo.foo;
+             *      }
+             * }
+             *
+             * After:
+             * const Foo = (function() {
+             *      function __C__(bar) {
+             *          this.bar = bar;
+             *      }
+             *      __C__.prototype.myMethod() {
+             *          return this.bar;
+             *      }
+             *      __C__.myStaticMethod = function() {
+             *          return Foo.foo;
+             *      }
+             *      __C__.foo = 20;
+             *      return __C__;
+             * })();
+             */
+            ctx.replaceWith(transformClass(ctx.node, nodes.identifier("__C__")));
+        },
+        ClassDeclaration(ctx: NodePath<nodes.ClassDeclaration>): void {
+            /*
+             * Before:
+             * class Foo {
+             *      constructor(bar) {
+             *          this.bar = bar;
+             *      }
+             *      myMethod() {
+             *          return this.bar;
+             *      }
+             *
+             *      static foo = 20;
+             *      static myStaticMethod() {
+             *          return Foo.foo;
+             *      }
+             * }
+             *
+             * After:
+             * const Foo = (function() {
+             *      function Foo(bar) {
+             *          this.bar = bar;
+             *      }
+             *      Foo.prototype.myMethod() {
+             *          return this.bar;
+             *      }
+             *      Foo.myStaticMethod = function() {
+             *          return Foo.foo;
+             *      }
+             *      Foo.foo = 20;
+             *      return Foo;
+             * })();
+             */
+            if (!ctx.node.id) {
+                throw "Missing class identifier";
+            }
+
+            const classDeclaration: nodes.CallExpression = transformClass(ctx.node, ctx.node.id);
+            ctx.replaceWith(nodes.variableDeclaration("const", [
+                nodes.variableDeclarator(ctx.node.id, classDeclaration)
+            ]));
+        }
     });
 }
 
-function transformSuperExpression(ctx: TransformContext, node: acorn.Super): acorn.Node {
-    if (!ctx.superClass) {
-        throw "Missing superClass context";
-    }
-    (node as acorn.ExtendedSuper).superClass = ctx.superClass;
-    (node as acorn.ExtendedSuper).inStaticMethod = ctx.inStaticMethod;
-    return node;
-}
+function transformClass(node: nodes.ClassDeclaration | nodes.ClassExpression, identifier: nodes.Identifier): nodes.CallExpression {
+    const constructorMethod: nodes.ClassMethod | undefined = node.body.body.find(node =>
+        node.type == "ClassMethod" &&
+        node.kind == "constructor") as nodes.ClassMethod | undefined;
 
-function transformForStatement(node: acorn.ForStatement): acorn.Node {
-    const nodes: acorn.Node[] = [];
-    if (node.init) {
-        nodes.push(node.init);
-    }
+    const methods: nodes.ClassMethod[] = node.body.body.filter(node => node.type == "ClassMethod" && node.kind == "method" && !node.static) as nodes.ClassMethod[];
+    const staticMethods: nodes.ClassMethod[] = node.body.body.filter(node => node.type == "ClassMethod" && node.kind == "method" && node.static) as nodes.ClassMethod[];
+    const properties: nodes.ClassProperty[] = node.body.body.filter(node => node.type == "ClassProperty" && !node.static && node.value) as nodes.ClassProperty[];
+    const staticProperties: nodes.ClassProperty[] = node.body.body.filter(node => node.type == "ClassProperty" && node.static && node.value) as nodes.ClassProperty[];
+    const staticBlocks: nodes.StaticBlock[] = node.body.body.filter(node => node.type == "StaticBlock") as nodes.StaticBlock[];
 
-    const test: acorn.Expression = node.test
-        ? node.test
-        : (<acorn.Literal>{
-            type: "Literal",
-            value: true,
-            raw: "true",
-            start: node.start,
-            end: node.end,
-            loc: node.loc,
-            range: node.range
-        });
-
-    const body: acorn.Node = node.update
-        ? packNodes([
-            node.body,
-            (<acorn.ExpressionStatement>{
-                type: "ExpressionStatement",
-                expression: node.update,
-                start: node.update.start,
-                end: node.update.end,
-                loc: node.update.loc,
-                range: node.update.range
-            })
-        ]) : node.body;
-
-    nodes.push((<acorn.WhileStatement>{
-        type: "WhileStatement",
-        test: test,
-        body: body,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    }));
-
-
-    return packNodes(nodes);
-}
-
-function transformClassExpression(ctx: TransformContext, node: acorn.ClassExpression): acorn.Node {
-    /*
-     * Before:
-     * const Foo = class {
-     *      constructor(bar) {
-     *          this.bar = bar;
-     *      }
-     *      myMethod() {
-     *          return this.bar;
-     *      }
-     *
-     *      static foo = 20;
-     *      static myStaticMethod() {
-     *          return Foo.foo;
-     *      }
-     * }
-     *
-     * After:
-     * const Foo = (function() {
-     *      function __C__(bar) {
-     *          this.bar = bar;
-     *      }
-     *      __C__.prototype.myMethod() {
-     *          return this.bar;
-     *      }
-     *      __C__.myStaticMethod = function() {
-     *          return Foo.foo;
-     *      }
-     *      __C__.foo = 20;
-     *      return __C__;
-     * })();
-     */
-    return transformClass(ctx, node, {
-        type: "Identifier",
-        name: "__C__",
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    });
-}
-
-function transformClassDeclaration(ctx: TransformContext, node: acorn.ClassDeclaration): acorn.Node {
-    /*
-     * Before:
-     * class Foo {
-     *      constructor(bar) {
-     *          this.bar = bar;
-     *      }
-     *      myMethod() {
-     *          return this.bar;
-     *      }
-     *
-     *      static foo = 20;
-     *      static myStaticMethod() {
-     *          return Foo.foo;
-     *      }
-     * }
-     *
-     * After:
-     * const Foo = (function() {
-     *      function Foo(bar) {
-     *          this.bar = bar;
-     *      }
-     *      Foo.prototype.myMethod() {
-     *          return this.bar;
-     *      }
-     *      Foo.myStaticMethod = function() {
-     *          return Foo.foo;
-     *      }
-     *      Foo.foo = 20;
-     *      return Foo;
-     * })();
-     */
-    const classDeclaration = transformClass(ctx, node, node.id);
-
-    return (<acorn.VariableDeclaration>{
-        type: "VariableDeclaration",
-        kind: "const",
-        declarations: [
-            (<acorn.VariableDeclarator>{
-                type: "VariableDeclarator",
-                id: node.id,
-                init: classDeclaration,
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            })
-        ],
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    });
-}
-
-function transformClass(ctx: TransformContext, node: acorn.ClassDeclaration | acorn.ClassExpression, identifier: acorn.Identifier): acorn.Expression {
-    const constructorMethod: acorn.MethodDefinition | undefined = node.body.body.find(node =>
-        node.type == "MethodDefinition" &&
-        node.kind == "constructor") as acorn.MethodDefinition | undefined;
-
-    const methods: acorn.MethodDefinition[] = node.body.body.filter(node => node.type == "MethodDefinition" && node.kind == "method" && !node.static) as acorn.MethodDefinition[];
-    const staticMethods: acorn.MethodDefinition[] = node.body.body.filter(node => node.type == "MethodDefinition" && node.kind == "method" && node.static) as acorn.MethodDefinition[];
-    const properties = node.body.body.filter(node => node.type == "PropertyDefinition" && !node.static && node.value) as acorn.PropertyDefinition[];
-    const staticProperties = node.body.body.filter(node => node.type == "PropertyDefinition" && node.static && node.value) as acorn.PropertyDefinition[];
-    const staticBlocks: acorn.StaticBlock[] = node.body.body.filter(node => node.type == "StaticBlock");
-
-    const extendsNodes: acorn.Statement[] = [];
+    const extendsNodes: nodes.Statement[] = [];
     if (node.superClass) {
         if (node.superClass.type != "Identifier") {
             throw "SuperClass must be an identifier";
         }
-        ctx.superClass = node.superClass;
 
         extendsNodes.push(
-            (<acorn.ExpressionStatement>{
-                type: "ExpressionStatement",
-                expression: (<acorn.AssignmentExpression>{
-                    type: "AssignmentExpression",
-                    left: (<acorn.MemberExpression>{
-                        type: "MemberExpression",
-                        object: identifier,
-                        property: (<acorn.Identifier>{
-                            type: "Identifier",
-                            name: "prototype",
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    }),
-                    operator: "=",
-                    right: (<acorn.CallExpression>{
-                        type: "CallExpression",
-                        callee: (<acorn.MemberExpression>{
-                            type: "MemberExpression",
-                            object: (<acorn.Identifier>{
-                                type: "Identifier",
-                                name: "Object",
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            }),
-                            property: (<acorn.Identifier>{
-                                type: "Identifier",
-                                name: "create",
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            }),
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        arguments: [
-                            (<acorn.MemberExpression>{
-                                type: "MemberExpression",
-                                object: node.superClass,
-                                property: (<acorn.Identifier>{
-                                    type: "Identifier",
-                                    name: "prototype",
-                                    start: node.start,
-                                    end: node.end,
-                                    loc: node.loc,
-                                    range: node.range
-                                }),
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            })
-                        ],
-                        optional: false,
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range,
-                    }),
-                    start: node.start,
-                    end: node.end,
-                    loc: node.loc,
-                    range: node.range
-                }),
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            }),
-            (<acorn.ExpressionStatement>{
-                type: "ExpressionStatement",
-                expression: (<acorn.CallExpression>{
-                    type: "CallExpression",
-                    callee: (<acorn.MemberExpression>{
-                        type: "MemberExpression",
-                        object: (<acorn.Identifier>{
-                            type: "Identifier",
-                            name: "Object",
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        property: (<acorn.Identifier>{
-                            type: "Identifier",
-                            name: "setPrototypeOf",
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    }),
-                    arguments: [
+            nodes.expressionStatement(
+                nodes.assignmentExpression(
+                    "=",
+                    nodes.memberExpression(
+                        identifier,
+                        nodes.identifier("prototype")
+                    ),
+                    nodes.callExpression(
+                        nodes.memberExpression(
+                            nodes.identifier("Object"),
+                            nodes.identifier("create")
+                        ),
+                        [
+                            nodes.memberExpression(
+                                node.superClass,
+                                nodes.identifier("prototype")
+                            )
+                        ]
+                    )
+                )
+            ),
+            nodes.expressionStatement(
+                nodes.callExpression(
+                    nodes.memberExpression(
+                        nodes.identifier("Object"),
+                        nodes.identifier("setPrototypeOf")
+                    ),
+                    [
                         identifier,
                         node.superClass
-                    ],
-                    optional: false,
-                    start: node.start,
-                    end: node.end,
-                    loc: node.loc,
-                    range: node.range
-                }),
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            })
+                    ]
+                )
+            )
         );
-        if (constructorMethod) {
-            const supperCallIdx: number = constructorMethod.value.body.body
-                .findIndex(sth =>
-                    sth.type == "ExpressionStatement" &&
-                    sth.expression.type == "CallExpression" &&
-                    sth.expression.callee.type == "Super"
-                );
-            if (supperCallIdx == -1) {
-                throw "Super call must exist in a class that extends another one";
-            }
-            const superCallExpression: acorn.CallExpression = (<acorn.CallExpression>(<acorn.ExpressionStatement>constructorMethod.value.body.body[supperCallIdx]).expression);
-            constructorMethod.value.body.body[supperCallIdx] = (<acorn.ExpressionStatement>{
-                type: "ExpressionStatement",
-                expression: (<acorn.CallExpression>{
-                    type: "CallExpression",
-                    callee: (<acorn.MemberExpression>{
-                        type: "MemberExpression",
-                        object: node.superClass,
-                        property: (<acorn.Identifier>{
-                            type: "Identifier",
-                            name: "call",
-                            start: superCallExpression.start,
-                            end: superCallExpression.end,
-                            loc: superCallExpression.loc,
-                            range: superCallExpression.range
-                        }),
-                        start: superCallExpression.start,
-                        end: superCallExpression.end,
-                        loc: superCallExpression.loc,
-                        range: superCallExpression.range
-                    }),
-                    arguments: [
-                        (<acorn.ThisExpression>{
-                            type: "ThisExpression",
-                            start: superCallExpression.start,
-                            end: superCallExpression.end,
-                            loc: superCallExpression.loc,
-                            range: superCallExpression.range
-                        }),
-                        ...superCallExpression.arguments
-                    ],
-                    optional: false,
-                    start: superCallExpression.start,
-                    end: superCallExpression.end,
-                    loc: superCallExpression.loc,
-                    range: superCallExpression.range
-                }),
-                start: superCallExpression.start,
-                end: superCallExpression.end,
-                loc: superCallExpression.loc,
-                range: superCallExpression.range
-            });
-        }
     }
 
-    return (<acorn.CallExpression>{
-        type: "CallExpression",
-        callee: (<acorn.FunctionExpression>{
-            type: "FunctionExpression",
-            id: undefined,
-            params: [],
-            body: (<acorn.BlockStatement>{
-                type: "BlockStatement",
-                body: [
-                    (<acorn.FunctionDeclaration>{
-                        type: "FunctionDeclaration",
-                        id: identifier,
-                        params: constructorMethod ? constructorMethod.value.params : [],
-                        body: (<acorn.BlockStatement>{
-                            type: "BlockStatement",
-                            body: [
-                                ...properties.map(property => (<acorn.ExpressionStatement>{
-                                    type: "ExpressionStatement",
-                                    expression: (<acorn.AssignmentExpression>{
-                                        type: "AssignmentExpression",
-                                        left: (<acorn.MemberExpression>{
-                                            type: "MemberExpression",
-                                            object: (<acorn.ThisExpression>{
-                                                type: "ThisExpression",
-                                                start: node.start,
-                                                end: node.end,
-                                                loc: node.loc,
-                                                range: node.range
-                                            }),
-                                            property: property.key,
-                                            computed: property.key.type != "Identifier",
-                                            optional: false,
-                                            start: node.start,
-                                            end: node.end,
-                                            loc: node.loc,
-                                            range: node.range
-                                        }),
-                                        operator: "=",
-                                        right: property.value,
-                                        start: node.start,
-                                        end: node.end,
-                                        loc: node.loc,
-                                        range: node.range
-                                    }),
-                                    start: node.start,
-                                    end: node.end,
-                                    loc: node.loc,
-                                    range: node.range
-                                })),
-                                ...(constructorMethod ? constructorMethod.value.body.body : []),
-                            ],
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        expression: false,
-                        async: false,
-                        generator: false,
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    }),
-                    ...extendsNodes,
-                    (<acorn.ExpressionStatement>{
-                        type: "ExpressionStatement",
-                        expression: (<acorn.AssignmentExpression>{
-                            type: "AssignmentExpression",
-                            left: (<acorn.MemberExpression>{
-                                type: "MemberExpression",
-                                object: (<acorn.MemberExpression>{
-                                    type: "MemberExpression",
-                                    object: identifier,
-                                    property: (<acorn.Identifier>{
-                                        type: "Identifier",
-                                        name: "prototype",
-                                        start: node.start,
-                                        end: node.end,
-                                        loc: node.loc,
-                                        range: node.range
-                                    }),
-                                    start: node.start,
-                                    end: node.end,
-                                    loc: node.loc,
-                                    range: node.range
-                                }),
-                                property: (<acorn.Identifier>{
-                                    type: "Identifier",
-                                    name: "constructor",
-                                    start: node.start,
-                                    end: node.end,
-                                    loc: node.loc,
-                                    range: node.range
-                                }),
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            }),
-                            operator: "=",
-                            right: identifier,
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    }),
-                    ...methods.map(method => (<acorn.ExpressionStatement>{
-                        type: "ExpressionStatement",
-                        expression: (<acorn.AssignmentExpression>{
-                            type: "AssignmentExpression",
-                            left: (<acorn.MemberExpression>{
-                                type: "MemberExpression",
-                                object: (<acorn.MemberExpression>{
-                                    type: "MemberExpression",
-                                    object: identifier,
-                                    property: (<acorn.Identifier>{
-                                        type: "Identifier",
-                                        name: "prototype",
-                                        start: node.start,
-                                        end: node.end,
-                                        loc: node.loc,
-                                        range: node.range
-                                    }),
-                                    start: node.start,
-                                    end: node.end,
-                                    loc: node.loc,
-                                    range: node.range
-                                }),
-                                property: method.key,
-                                computed: method.key.type != "Identifier",
-                                optional: false,
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            }),
-                            operator: "=",
-                            right: method.value,
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    })),
-                    ...staticMethods.map(method => (<acorn.ExpressionStatement>{
-                        type: "ExpressionStatement",
-                        expression: (<acorn.AssignmentExpression>{
-                            type: "AssignmentExpression",
-                            left: (<acorn.MemberExpression>{
-                                type: "MemberExpression",
-                                object: identifier,
-                                property: method.key,
-                                computed: method.key.type != "Identifier",
-                                optional: false,
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            }),
-                            operator: "=",
-                            right: method.value,
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    })),
-                    ...staticProperties.map(property => (<acorn.ExpressionStatement>{
-                        type: "ExpressionStatement",
-                        expression: (<acorn.AssignmentExpression>{
-                            type: "AssignmentExpression",
-                            left: (<acorn.MemberExpression>{
-                                type: "MemberExpression",
-                                object: identifier,
-                                property: property.key,
-                                computed: property.key.type != "Identifier",
-                                optional: false,
-                                start: node.start,
-                                end: node.end,
-                                loc: node.loc,
-                                range: node.range
-                            }),
-                            operator: "=",
-                            right: property.value,
-                            start: node.start,
-                            end: node.end,
-                            loc: node.loc,
-                            range: node.range
-                        }),
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    })),
-                    ...staticBlocks.map(node => node.body).flat(),
-                    (<acorn.ReturnStatement>{
-                        type: "ReturnStatement",
-                        argument: identifier,
-                        start: node.start,
-                        end: node.end,
-                        loc: node.loc,
-                        range: node.range
-                    })
-                ],
-                start: node.start,
-                end: node.end,
-                loc: node.loc,
-                range: node.range
-            }),
-            expression: false,
-            async: false,
-            generator: false,
-            start: node.start,
-            end: node.end,
-            loc: node.loc,
-            range: node.range
-        }),
-        arguments: [],
-        optional: false,
-        start: node.start,
-        end: node.end,
-        loc: node.loc,
-        range: node.range
-    });
+    return nodes.callExpression(
+        nodes.functionExpression(
+            undefined,
+            [],
+            nodes.blockStatement([
+                nodes.functionDeclaration(
+                    identifier,
+                    constructorMethod ? constructorMethod.params as Array<nodes.Identifier | nodes.Pattern | nodes.RestElement> : [],
+                    nodes.blockStatement([
+                        ...properties.map(property => nodes.expressionStatement(
+                            nodes.assignmentExpression(
+                                "=",
+                                nodes.memberExpression(
+                                    nodes.thisExpression(),
+                                    property.key
+                                ),
+                                property.value ? property.value : nodes.identifier("undefined")
+                            )
+                        )),
+                        ...constructorMethod ? constructorMethod.body.body : [],
+                    ])
+                ),
+                ...extendsNodes,
+                nodes.expressionStatement(
+                    nodes.assignmentExpression(
+                        "=",
+                        nodes.memberExpression(
+                            nodes.memberExpression(
+                                identifier,
+                                nodes.identifier("prototype")
+                            ),
+                            nodes.identifier("constructor")
+                        ),
+                        identifier
+                    )
+                ),
+                ...methods.map(method => nodes.expressionStatement(
+                    nodes.assignmentExpression(
+                        "=",
+                        nodes.memberExpression(
+                            nodes.memberExpression(
+                                identifier,
+                                nodes.identifier("prototype")
+                            ),
+                            method.key,
+                            method.key.type != "Identifier"
+                        ),
+                        nodes.functionExpression(
+                            undefined,
+                            method.params as Array<nodes.Identifier | nodes.Pattern | nodes.RestElement>,
+                            method.body,
+                            method.generator,
+                            method.async
+                        )
+                    )
+                )),
+                ...staticMethods.map(method => nodes.expressionStatement(
+                    nodes.assignmentExpression(
+                        "=",
+                        nodes.memberExpression(
+                            identifier,
+                            method.key,
+                            method.key.type != "Identifier"
+                        ),
+                        nodes.functionExpression(
+                            undefined,
+                            method.params as Array<nodes.Identifier | nodes.Pattern | nodes.RestElement>,
+                            method.body,
+                            method.generator,
+                            method.async
+                        )
+                    )
+                )),
+                ...staticProperties.map(property => nodes.expressionStatement(
+                    nodes.assignmentExpression(
+                        "=",
+                        nodes.memberExpression(
+                            identifier,
+                            property.key,
+                            property.key.type != "Identifier"
+                        ),
+                        property.value ? property.value : nodes.identifier("undefined")
+                    )
+                )),
+                ...staticBlocks.map(block => block.body).flat(),
+                nodes.returnStatement(identifier)
+            ])
+        ),
+        []
+    )
 }
