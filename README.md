@@ -1,5 +1,7 @@
 # AtomixJS
 
+[![CI](https://github.com/bytelab-studio/AtomixJS/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/bytelab-studio/AtomixJS/actions/workflows/ci.yml)
+
 AtomixJS is a lightweight JavaScript runtime designed specifically for PC-like systems (Windows, Linux, MacOS) running
 on 64-bit architectures. By compiling JavaScript into ByteCode rather than using dynamic interpretation methods like
 `eval`, AtomixJS emphasizes efficiency, predictability, and a clear separation between browser JavaScript and desktop
