@@ -29,7 +29,7 @@ jobs:
       - name: Set archive info
         id: set-artifact-name
         run: |
-          FILE_NAME="zig-${{ matrix.platform }}-${{ matrix.arch}}-${{ steps.get-version.outputs.zig_version }}"
+          FILE_NAME="zig-${{ matrix.arch}}-${{ matrix.platform }}-${{ steps.get-version.outputs.zig_version }}"
           EXT="tar.xz"
           [[ ${{ matrix.platform }} == "windows" ]] && EXT="zip"
 
@@ -85,7 +85,7 @@ jobs:
         if: matrix.platform == 'windows'
         run: |
           mkdir -p ./__tmp
-          unzip -q "./zig-${{ matrix.platform }}-${{ matrix.arch }}-*" -d "__tmp"
+          unzip -q "./zig-${{ matrix.arch }}-${{ matrix.platform }}-*" -d "__tmp"
           shopt -s dotglob
           mv ./__tmp/*/* ./__dist/zig/
           rm -rf ./__tmp
@@ -93,7 +93,7 @@ jobs:
       - name: Extract artifact archive (Linux)
         if: matrix.platform == 'linux'
         run: |
-          tar --strip-components=1 -xf ./zig-${{ matrix.platform }}-${{ matrix.arch }}-*.xz -C ./__dist/zig
+          tar --strip-components=1 -xf ./zig-${{ matrix.arch }}-${{ matrix.platform }}-*.xz -C ./__dist/zig
 
       - name: Build atomixc
         run: |
