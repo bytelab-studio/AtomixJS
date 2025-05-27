@@ -48,7 +48,7 @@ function transformNode1Cycle(node: acorn.Node): acorn.Node {
         ident: 0,
         // @ts-ignore
         enter(node) {
-            console.log(`${" ".repeat(ident*4)}Enter ${node.type}`);
+            console.log(`${" ".repeat(ident*4)}C1:Enter ${node.type}`);
             ident++;
             if (node.type == "ExpressionStatement" && node.expression.type == "Literal" && typeof node.expression.value == "string" && node.expression.value == "use strict") {
                 return packNodes([]);
@@ -84,7 +84,7 @@ function transformNode1Cycle(node: acorn.Node): acorn.Node {
         },
         leave(node) {
             ident--;
-            console.log(`${" ".repeat(ident*4)}Leave ${node.type}`);
+            console.log(`${" ".repeat(ident*4)}C1:Leave ${node.type}`);
         }
     }) as acorn.Node;
 }
@@ -101,7 +101,7 @@ function transformNode2Cycle(node: acorn.Node): acorn.Node {
         ident: 0,
         // @ts-ignore
         enter(node) {
-            console.log(`${" ".repeat(ident*4)}Enter ${node.type}`);
+            console.log(`${" ".repeat(ident*4)}C2:Enter ${node.type}`);
             ident++;
             
             if (node.type == "ClassDeclaration") {
@@ -110,20 +110,12 @@ function transformNode2Cycle(node: acorn.Node): acorn.Node {
             if (node.type == "ClassExpression") {
                 return transformClassExpression(ctx, node as acorn.ClassExpression);
             }
-            if (node.type == "MethodDefinition") {
-                ctx.inStaticMethod = node.static;
-                return node;
-            }
-            if (node.type == "StaticBlock") {
-                ctx.inStaticMethod = true;
-                return node;
-            }
 
             return node;
         },
         leave(node) {
             ident--;
-            console.log(`${" ".repeat(ident*4)}Leave ${node.type}`);
+            console.log(`${" ".repeat(ident*4)}C2:Leave ${node.type}`);
         }
     }) as acorn.Node;
 }
