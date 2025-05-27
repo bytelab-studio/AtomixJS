@@ -223,6 +223,17 @@ function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, do
             ctx.data.addInstruction(new Instruction(Opcodes.DUP));
         }
     }
+
+    if (node.computed) {
+        pipeNode(node.property, ctx);
+        ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
+        return;
+    }
+    if (node.property.type != "Identifier") {
+        throw "Undefined property";
+    }
+    const idx: number = ctx.stringTable.registerString(node.property.name);
+    ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
 pipe["MemberExpression"] = (node: nodes.MemberExpression, ctx: PipeContext) => pipeMemberExpression(node, ctx, false);
