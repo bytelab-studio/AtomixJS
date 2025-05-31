@@ -1,5 +1,5 @@
 #include "function.h"
-
+#include "api.h"
 #include "allocator.h"
 
 JSFunction* function_create_native_function(JSNativeFunction function_ptr)
@@ -8,6 +8,10 @@ JSFunction* function_create_native_function(JSNativeFunction function_ptr)
     function->is_native = 1;
     function->native_function = function_ptr;
     function->base = object_create_object(object_get_object_prototype());
+
+    JSObject* prototype = object_create_object(object_get_object_prototype());
+    object_set_property(prototype, init_string("constructor"), JS_VALUE_FUNCTION(function));
+    object_set_property(function->base, init_string("prototype"), JS_VALUE_OBJECT(prototype));
 
     return function;
 }
@@ -27,7 +31,11 @@ JSFunction* function_create_function(
 
     Scope* scope = scope_create_scope(parentScope);
     function->scope = scope;
-    function->base = object_create_object(object_get_object_prototype());
+    function->base = object_create_object(object_get_function_prototype());
+
+    JSObject* prototype = object_create_object(object_get_object_prototype());
+    object_set_property(prototype, init_string("constructor"), JS_VALUE_FUNCTION(function));
+    object_set_property(function->base, init_string("prototype"), JS_VALUE_OBJECT(prototype));
 
     return function;
 }

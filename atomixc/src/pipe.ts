@@ -64,6 +64,10 @@ pipe["Identifier"] = (node: nodes.Identifier, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
+pipe["ThisExpression"] = (node: nodes.ThisExpression, ctx: PipeContext) => {
+    ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
+}
+
 pipe["ExpressionStatement"] = (node: nodes.ExpressionStatement, ctx: PipeContext) => {
     pipeNode(node.expression, ctx);
     ctx.data.addInstruction(new Instruction(Opcodes.POP));
@@ -159,7 +163,12 @@ pipe["CallExpression"] = (node: nodes.CallExpression, ctx: PipeContext) => {
     for (const argument of node.arguments.reverse()) {
         pipeNode(argument, ctx);
     }
-    pipeNode(node.callee, ctx);
+    if (node.callee.type == "MemberExpression") {
+        pipeMemberExpression(node.callee, ctx, true);
+    } else {
+        ctx.data.addInstruction(new Instruction(Opcodes.LD_UNDF));
+        pipeNode(node.callee, ctx);
+    }
     ctx.data.addInstruction(new Instruction(Opcodes.CALL).addOperand(new ConstantUNumberOperand(node.arguments.length, "short")));
 }
 
@@ -192,8 +201,29 @@ pipe["ArrayExpression"] = (node: nodes.ArrayExpression, ctx: PipeContext) => {
     }
 }
 
-pipe["MemberExpression"] = (node: nodes.MemberExpression, ctx: PipeContext) => {
-    pipeNode(node.object, ctx);
+function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
+    if (node.object.type == "Super") {
+        const obj: nodes.Super = node.object;
+        if (!obj.extra || !obj.extra.targetClass || !obj.extra.isStatic) {
+            throw "Missing meta data";
+        }
+        if (doubleObject) {
+            ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
+        }
+        const superClassIdx: number = ctx.stringTable.registerString(obj.extra.targetClass as string);
+        ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(superClassIdx, "short")));
+        if (!obj.extra.isStatic) {
+            const prototypeIdx: number = ctx.stringTable.registerString("prototype");
+            ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(prototypeIdx, "short")));
+        }
+    } else {
+        pipeNode(node.object, ctx);
+
+        if (doubleObject) {
+            ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+        }
+    }
+
     if (node.computed) {
         pipeNode(node.property, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_CLOAD));
@@ -205,6 +235,8 @@ pipe["MemberExpression"] = (node: nodes.MemberExpression, ctx: PipeContext) => {
     const idx: number = ctx.stringTable.registerString(node.property.name);
     ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
+
+pipe["MemberExpression"] = (node: nodes.MemberExpression, ctx: PipeContext) => pipeMemberExpression(node, ctx, false);
 
 pipe["AssignmentExpression"] = (node: nodes.AssignmentExpression, ctx: PipeContext) => {
     if (node.operator != "=") {
@@ -268,7 +300,7 @@ pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: nodes.Function
         if (param.type != "Identifier") {
             throw "Unsupported param type";
         }
-        ctx.data.addInstruction(new Instruction(Opcodes.LOAD_ARG).addOperand(new ConstantUNumberOperand(i, "short")));
+        ctx.data.addInstruction(new Instruction(Opcodes.LOAD_ARG).addOperand(new ConstantUNumberOperand(i + 1, "short")));
         const idx: number = ctx.stringTable.registerString(param.name);
         ctx.data.addInstruction(new Instruction(Opcodes.ALLOC_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
     }
@@ -289,7 +321,7 @@ pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: nodes.Function
 }
 
 pipe["BlockStatement"] = (node: nodes.BlockStatement, ctx: PipeContext) => {
-    if (!("virtual" in node) || !node.virtual) {
+    if (!node.extra || !node.extra.isVirtual) {
         ctx.data.addInstruction(new Instruction(Opcodes.PUSH_SCOPE));
     }
     for (const item of node.body) {
@@ -298,7 +330,7 @@ pipe["BlockStatement"] = (node: nodes.BlockStatement, ctx: PipeContext) => {
             ctx.data.addInstruction(new Instruction(Opcodes.POP));
         }
     }
-    if (!("virtual" in node) || !node.virtual) {
+    if (!node.extra || !node.extra.isVirtual) {
         ctx.data.addInstruction(new Instruction(Opcodes.POP_SCOPE));
     }
 }

@@ -2,9 +2,10 @@
 #include <wchar.h>
 
 #include "api.h"
+#include "execution.h"
 #include "function.h"
 
-JSValue print(VM* vm, JSValue* args, size_t argc)
+JSValue print(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     if (argc == 0)
     {
@@ -62,12 +63,92 @@ JSValue print(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_UNDEFINED;
 }
 
-JSValue module_get_export_obj(VM* vm, JSValue* args, size_t argc)
+JSValue module_get_export_obj(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     return JS_VALUE_OBJECT(vm->module.exports);
 }
 
-JSValue array(VM* vm, JSValue* args, size_t argc)
+JSValue object(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    // TODO implement
+    return JS_VALUE_UNDEFINED;
+}
+
+JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (argc == 0)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSValue constructor_wrapped = args[0];
+    if (constructor_wrapped.type != JS_FUNC)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+    JSFunction* constructor = constructor_wrapped.value.as_pointer;
+
+    JSValue prototype_wrapped = object_get_property(constructor->base, "prototype");
+    if (prototype_wrapped.type != JS_OBJECT)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSObject* obj = object_create_object((JSObject*)prototype_wrapped.value.as_pointer);
+    JSValue return_value = api_call_function(vm, constructor, JS_VALUE_OBJECT(obj), args + 1, argc - 1);
+    if (return_value.type == JS_OBJECT)
+    {
+        return return_value;
+    }
+
+    return JS_VALUE_OBJECT(obj);
+}
+
+JSValue create(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (argc == 0)
+    {
+        return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
+    }
+
+    if (args[0].type != JS_OBJECT)
+    {
+        // TODO throw exception
+        return JS_VALUE_OBJECT(object_create_object(object_get_object_prototype()));
+    }
+
+    return JS_VALUE_OBJECT(object_create_object((JSObject*)args[0].value.as_pointer));
+}
+
+JSValue setPrototypeOf(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (argc < 2)
+    {
+        return JS_VALUE_UNDEFINED;
+    }
+
+    if ((args[0].type != JS_OBJECT && args[0].type != JS_FUNC) ||
+        (args[1].type != JS_OBJECT && args[1].type != JS_FUNC))
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSObject* target = args[0].type == JS_OBJECT
+        ? (JSObject*)args[0].value.as_pointer
+        : ((JSFunction*)args[0].value.as_pointer)->base;
+    JSObject* prototype = args[1].type == JS_OBJECT
+        ? (JSObject*)args[1].value.as_pointer
+        : ((JSFunction*)args[1].value.as_pointer)->base;
+
+    target->prototype = prototype;
+    return JS_VALUE_UNDEFINED;
+}
+
+JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     JSObject* arr = object_create_object(object_get_array_prototype());
 
@@ -106,7 +187,7 @@ JSValue array(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_OBJECT(arr);
 }
 
-JSValue is_array(VM* vm, JSValue* args, size_t argc)
+JSValue is_array(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     if (argc < 1)
     {
@@ -117,11 +198,31 @@ JSValue is_array(VM* vm, JSValue* args, size_t argc)
     return JS_VALUE_BOOL(value_is_array(&value));
 }
 
+JSValue function(VM* vm, JSValue this, JSValue* args, size_t argc) {
+    // TODO throw exception
+    return JS_VALUE_UNDEFINED;
+}
+
+JSValue call(VM* vm, JSValue this, JSValue* args, size_t argc) {
+    if (this.type != JS_FUNC) {
+        // TODO throw execption
+        return JS_VALUE_UNDEFINED;
+    }
+
+    JSFunction* function = this.value.as_pointer;
+    if (argc == 0) {
+        return api_call_function(vm, function, JS_VALUE_UNDEFINED, args, argc);
+    }
+    return api_call_function(vm, function, args[0], args + 1, argc - 1);
+}
+
 void core_init(Scope* scope)
 {
+    // Helper
     JSFunction* _print = function_create_native_function(print);
     scope_declare(scope, init_string("print"), JS_VALUE_FUNCTION(_print));
 
+    // Module
     JSObject* _module = object_create_object(object_get_object_prototype());
 
     JSFunction* _module_get_export_obj = function_create_native_function(module_get_export_obj);
@@ -129,6 +230,21 @@ void core_init(Scope* scope)
 
     scope_declare(scope, init_string("module"), JS_VALUE_OBJECT(_module));
 
+    // Object
+    JSFunction* _object = function_create_native_function(object);
+
+    JSFunction* _instantiate = function_create_native_function(instantiate);
+    object_set_property(_object->base, init_string("instantiate"), JS_VALUE_FUNCTION(_instantiate));
+
+    JSFunction* _create = function_create_native_function(create);
+    object_set_property(_object->base, init_string("create"), JS_VALUE_FUNCTION(_create));
+
+    JSFunction* _setPrototypeOf = function_create_native_function(setPrototypeOf);
+    object_set_property(_object->base, init_string("setPrototypeOf"), JS_VALUE_FUNCTION(_setPrototypeOf));
+
+    scope_declare(scope, init_string("Object"), JS_VALUE_FUNCTION(_object));
+
+    // Array
     JSFunction* _array = function_create_native_function(array);
     _array->base->prototype = object_get_array_prototype();
 
@@ -136,4 +252,13 @@ void core_init(Scope* scope)
     object_set_property(_array->base, init_string("isArray"), JS_VALUE_FUNCTION(_is_array));
 
     scope_declare(scope, init_string("Array"), JS_VALUE_FUNCTION(_array));
+
+    // Function
+    JSFunction* _function = function_create_native_function(function);
+    _function->base->prototype = object_get_function_prototype();
+
+    scope_declare(scope, init_string("Function"), JS_VALUE_FUNCTION(_function));
+
+    JSFunction* _call = function_create_native_function(call);
+    object_set_property(_function->base->prototype, init_string("call"), JS_VALUE_FUNCTION(_call));
 }

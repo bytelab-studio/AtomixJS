@@ -21,4 +21,6 @@ JSObject* object_get_object_prototype();
 
 JSObject* object_get_array_prototype();
 
+JSObject* object_get_function_prototype();
+
 #endif //OBJECT_H

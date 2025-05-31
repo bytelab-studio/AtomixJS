@@ -9,6 +9,7 @@ export enum Opcodes {
     LD_NULL,
     LD_TRUE,
     LD_FALSE,
+    LD_THIS,
     ADD,
     MINUS,
     MUL,

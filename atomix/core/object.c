@@ -1,5 +1,5 @@
+#include <string.h>
 #include "object.h"
-
 #include "allocator.h"
 
 #define OBJECT_BUCKET_SIZE 16
@@ -62,4 +62,17 @@ JSObject* object_get_array_prototype()
     }
 
     return array_prototype;
+}
+
+JSObject* function_prototype = NULL;
+
+JSObject* object_get_function_prototype()
+{
+    // TODO assign constructor etc.
+    if (!function_prototype)
+    {
+        function_prototype = object_create_object(object_get_object_prototype());
+    }
+
+    return function_prototype;
 }

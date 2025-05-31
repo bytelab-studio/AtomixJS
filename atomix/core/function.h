@@ -6,7 +6,7 @@
 #include "scope.h"
 #include "vm.h"
 
-typedef JSValue (*JSNativeFunction)(VM* vm, JSValue* args, size_t argc);
+typedef JSValue (*JSNativeFunction)(VM* vm, JSValue this, JSValue* args, size_t argc);
 
 typedef struct
 {

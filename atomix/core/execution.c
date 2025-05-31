@@ -77,6 +77,15 @@ void inst_ld_boolean(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_BOOL(OPCODE_OF(ptr) == OP_LD_TRUE);
 }
 
+void inst_ld_this(VM* vm, void* ptr)
+{
+    if (vm->stats.stack_counter >= STACK_SIZE)
+    {
+        PANIC("Stack overflow");
+    }
+    vm->stats.stack[vm->stats.stack_counter++] = scope_get(vm->scope, "this");
+}
+
 void inst_add(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
@@ -1120,8 +1129,7 @@ void inst_load_arg(VM* vm, void* ptr)
     }
 
     vm->stats.stack[vm->stats.stack_counter++]
-        = vm->stats.stack[vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) - inst->operand -
-            1];
+        = vm->stats.stack[vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) - inst->operand - 1];
 }
 
 void inst_func_decl(VM* vm, void* ptr)
@@ -1176,22 +1184,32 @@ void inst_call(VM* vm, void* ptr)
     {
         PANIC("Callee is not a function");
     }
+
     JSFunction* function = value.value.as_pointer;
     JSValue return_value;
+
     if (function->is_native)
     {
         if (!function->native_function)
         {
             PANIC("Function holds not a valid pointer");
         }
-        JSValue* args = &vm->stats.stack[vm->stats.stack_counter - inst->operand];
-        return_value = function->native_function(vm, args, inst->operand);
-        vm->stats.stack_counter -= inst->operand;
+        JSValue args[inst->operand + 1];
+        for (uint16_t i = 0; i <= inst->operand; i++) {
+            args[i] = vm->stats.stack[vm->stats.stack_counter - i - 1];
+        }
+    
+        JSValue this = args[0];
+        return_value = function->native_function(vm, this, args + 1, inst->operand);
+        vm->stats.stack_counter -= inst->operand + 1;
     }
     else
     {
+        JSValue this_value = vm->stats.stack[vm->stats.stack_counter - 1];
+        char* this_key = init_string("this");
+        scope_declare(function->scope, this_key, this_value);
         return_value = vm_exec_function(vm, function);
-        vm->stats.stack_counter -= inst->operand;
+        vm->stats.stack_counter -= inst->operand + 1;
     }
     vm->stats.stack[vm->stats.stack_counter++] = return_value;
 }
@@ -1231,8 +1249,8 @@ void inst_obj_store(VM* vm, void* ptr)
     }
     char* key = string_table_load_str(&vm->module.string_table, inst->operand);
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : (JSObject*)obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : (JSObject*)obj.value.as_pointer;
     object_set_property(obj_ptr, key, value);
 }
 
@@ -1250,8 +1268,8 @@ void inst_obj_load(VM* vm, void* ptr)
     }
     char* key = string_table_load_str(&vm->module.string_table, inst->operand);
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : (JSObject*)obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : (JSObject*)obj.value.as_pointer;
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
     js_free(key);
 }
@@ -1269,8 +1287,8 @@ void inst_obj_cload(VM* vm, void* ptr)
         PANIC("Target is not a object");
     }
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : obj.value.as_pointer;
     char* key = value_to_string(&value);
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
     js_free(key);
@@ -1291,8 +1309,8 @@ void inst_obj_cstore(VM* vm, void* ptr)
     }
     char* key = value_to_string(&computed);
     JSObject* obj_ptr = obj.type == JS_FUNC
-                            ? ((JSFunction*)obj.value.as_pointer)->base
-                            : (JSObject*)obj.value.as_pointer;
+        ? ((JSFunction*)obj.value.as_pointer)->base
+        : (JSObject*)obj.value.as_pointer;
     object_set_property(obj_ptr, key, value);
 }
 
@@ -1368,6 +1386,7 @@ VM vm_init(JSModule module)
     vm.inst_set[OP_LD_NULL] = inst_ld_null;
     vm.inst_set[OP_LD_TRUE] = inst_ld_boolean;
     vm.inst_set[OP_LD_FALSE] = inst_ld_boolean;
+    vm.inst_set[OP_LD_THIS] = inst_ld_this;
     vm.inst_set[OP_ADD] = inst_add;
     vm.inst_set[OP_MINUS] = inst_minus;
     vm.inst_set[OP_MUL] = inst_mul;
@@ -1454,8 +1473,8 @@ JSValue vm_exec_function(VM* vm, JSFunction* function)
         vm_exec(vm);
     }
     JSValue return_value = vm->stats.stack_counter > vm->stats.stack_start
-                               ? vm->stats.stack[--vm->stats.stack_counter]
-                               : JS_VALUE_UNDEFINED;
+        ? vm->stats.stack[--vm->stats.stack_counter]
+        : JS_VALUE_UNDEFINED;
 
     vm->module = current_module;
     vm->stats = stats;
