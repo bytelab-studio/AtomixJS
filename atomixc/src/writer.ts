@@ -75,7 +75,8 @@ export class FormatWriter extends BinaryWriter {
         this.writeU8(header.magic[1]);
         this.writeU8(header.magic[2]);
         this.writeU16(header.version);
-        this.writeU32(header.hash);
+        this.writeU32(header.hash[0]);
+        this.writeU32(header.hash[1]);
         this.writeU32(header.stringTableStart);
         this.writeU32(header.dataSectionStart);
     }

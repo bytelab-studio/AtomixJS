@@ -14,13 +14,13 @@ export interface FileFormat {
 export interface FileHeader {
     magic: [number, number, number];
     version: number;
-    hash: number;
+    hash: [number, number];
     stringTableStart: number;
     dataSectionStart: number;
 }
 
-export function buildFile(hash: number, stringTable: StringTable, dataSection: DataSection): FileFormat {
-    const baseStart: Size = Size.new(3, "byte").add(1, "short").add(3, "int");
+export function buildFile(hash: [number, number], stringTable: StringTable, dataSection: DataSection): FileFormat {
+    const baseStart: Size = Size.new(3, "byte").add(1, "short").add(1, "long").add(2, "int");
 
     const header: FileHeader = {
         magic: MAGIC,

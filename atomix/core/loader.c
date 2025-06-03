@@ -35,9 +35,12 @@ JSModule module_load_from_file(const char* filename)
 }
 
 #define READ_BLOCK(buff, position, offset, shift) (((uint32_t)(uint8_t)buff[position - offset]) << shift)
+#define READ_BIG_BLOCK(buff, position, offset, shift) (((uint64_t)(uint8_t)buff[position - offset]) << shift)
 #define READ_U16(buff, position) (position += 2, (uint16_t)(READ_BLOCK(buff, position, 1, 8) | READ_BLOCK(buff, position, 2, 0)))
 #define READ_U32(buff, position) (position += 4, (uint32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
 #define READ_I32(buff, position) (position += 4, (int32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
+#define READ_U64(buff, position) (position += 8, (uint64_t)(READ_BIG_BLOCK(buff, position, 1, 56) | READ_BIG_BLOCK(buff, position, 2, 48) | READ_BIG_BLOCK(buff, position, 3, 40) | READ_BIG_BLOCK(buff, position, 4, 32) | \
+                                                            READ_BIG_BLOCK(buff, position, 5, 24) | READ_BIG_BLOCK(buff, position, 6, 16) | READ_BIG_BLOCK(buff, position, 7, 8) | READ_BIG_BLOCK(buff, position, 8, 0)))
 
 static double READ_DOUBLE(const uint8_t* buff, size_t* position)
 {
@@ -209,7 +212,7 @@ JSModule module_load_from_buffer(uint8_t* buff)
         PANIC("Invalid VM Version");
     }
 
-    module.header.hash = READ_U32(buff, position);
+    module.header.hash = READ_U64(buff, position);
     module.header.string_table = READ_U32(buff, position);
     module.header.data_section = READ_U32(buff, position);
 

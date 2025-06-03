@@ -25,7 +25,7 @@ typedef struct
     {
         char magic[3];
         uint16_t version;
-        uint32_t hash;
+        uint64_t hash;
         uint32_t string_table;
         uint32_t data_section;
     } header;

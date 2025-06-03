@@ -11,19 +11,16 @@ import {FormatWriter} from "./writer";
 import * as dumper from "./dumper";
 import * as transform from "./transform";
 
-function hashString(s: string): number {
+function hashString(s: string): [number, number] {
     const hash: Buffer = crypto.createHash("sha256").update(s).digest();
 
-    let result: number = 0;
-    for (let i: number = 0; i < 32; i += 4) {
-        const chunk: number = hash.readUint32LE(i);
-        result ^= chunk;
-    }
-
-    return result >>> 0;
+    return [
+        hash.readUint32LE(0) >>> 0,
+        hash.readUInt32LE(4) >>> 0
+    ];
 }
 
-export function hashFilePath(file: string, root: string, prefix: string): number {
+export function hashFilePath(file: string, root: string, prefix: string): [number, number] {
     if (!path.isAbsolute(file)) {
         file = path.posix.join(process.cwd(), file).replace(/\\/g, "/");
     }
@@ -51,7 +48,7 @@ export function parseFile(input: string, output: string, root: string, prefix: s
         process.exit(1);
     }
 
-    const hash: number = hashFilePath(input, root, prefix);
+    const hash: [number, number] = hashFilePath(input, root, prefix);
     transform.transformFile(result);
 
     const stringTable: StringTableBuilder = new StringTableBuilder();
