@@ -209,6 +209,7 @@ JSModule module_load_from_buffer(char* buff)
         PANIC("Invalid VM Version");
     }
 
+    module.header.hash = READ_U32(buff, position);
     module.header.string_table = READ_U32(buff, position);
     module.header.data_section = READ_U32(buff, position);
 

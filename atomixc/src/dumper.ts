@@ -17,6 +17,7 @@ function dumpHeader(header: FileHeader): void {
     console.log("$HEADER:");
     writeIntend(`MAGIC: ${header.magic[0]} ${header.magic[1]} ${header.magic[2]}`);
     writeIntend(`VERSION: ${header.version}`);
+    writeIntend(`HASH: 0x${header.hash.toString(16)}`);
     writeIntend(`$STABLE: 0x${header.stringTableStart.toString(16)}`);
     writeIntend(`$DATA: 0x${header.dataSectionStart.toString(16)}`);
     console.log();

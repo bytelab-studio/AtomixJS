@@ -6,7 +6,7 @@
 #define MAGIC0 0x2E
 #define MAGIC1 0x41
 #define MAGIC2 0x78
-#define VERSION 1
+#define VERSION 2
 
 JSModule module_load_from_file(const char* filename);
 

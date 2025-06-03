@@ -3,7 +3,7 @@ import {Size} from "../size";
 import {DataSection} from "./data";
 
 const MAGIC: [number, number, number] = [46, 65, 120];
-const VERSION: number = 1;
+const VERSION: number = 2;
 
 export interface FileFormat {
     header: FileHeader;
@@ -14,16 +14,18 @@ export interface FileFormat {
 export interface FileHeader {
     magic: [number, number, number];
     version: number;
+    hash: number;
     stringTableStart: number;
     dataSectionStart: number;
 }
 
-export function buildFile(stringTable: StringTable, dataSection: DataSection): FileFormat {
-    const baseStart: Size = Size.new(3, "byte").add(1, "short").add(2, "int");
+export function buildFile(hash: number, stringTable: StringTable, dataSection: DataSection): FileFormat {
+    const baseStart: Size = Size.new(3, "byte").add(1, "short").add(3, "int");
 
     const header: FileHeader = {
         magic: MAGIC,
         version: VERSION,
+        hash: hash,
         stringTableStart: baseStart.inBytes(),
         dataSectionStart: baseStart.add(stringTable.length, "bytes").inBytes()
     }

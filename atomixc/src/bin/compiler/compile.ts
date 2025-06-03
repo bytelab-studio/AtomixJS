@@ -28,7 +28,7 @@ function* compile(handler: SubCommandSet): Generator<OptionSet> {
         process.exit(1);
     }
 
-    parser.parseFile(input, output);
+    parser.parseFile(input, output, root, "@program");
 }
 
 const command: [string, string, (handler: SubCommandSet) => Generator<OptionSet | SubCommandSet>] = ["compile", "Compile a JavaScript file", compile];
