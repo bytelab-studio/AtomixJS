@@ -10,7 +10,7 @@
 
 JSModule module_load_from_file(const char* filename);
 
-JSModule module_load_from_buffer(char* buff);
+JSModule module_load_from_buffer(uint8_t* buff);
 
 void module_free(JSModule module);
 

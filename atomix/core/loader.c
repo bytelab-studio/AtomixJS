@@ -21,7 +21,7 @@ JSModule module_load_from_file(const char* filename)
     size_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    char* buffer = js_malloc(size);
+    uint8_t* buffer = js_malloc(size);
     if (!buffer)
     {
         PANIC("Could not allocate memory");
@@ -34,12 +34,12 @@ JSModule module_load_from_file(const char* filename)
     return module;
 }
 
-#define READ_BLOCK(buff, position, offset, shift) (((uint8_t)buff[position - offset]) << shift)
+#define READ_BLOCK(buff, position, offset, shift) (((uint32_t)(uint8_t)buff[position - offset]) << shift)
 #define READ_U16(buff, position) (position += 2, (uint16_t)(READ_BLOCK(buff, position, 1, 8) | READ_BLOCK(buff, position, 2, 0)))
 #define READ_U32(buff, position) (position += 4, (uint32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
 #define READ_I32(buff, position) (position += 4, (int32_t)(READ_BLOCK(buff, position, 1, 24) | READ_BLOCK(buff, position, 2, 16) | READ_BLOCK(buff, position, 3, 8) | READ_BLOCK(buff, position, 4, 0)))
 
-static double READ_DOUBLE(const char* buff, size_t* position)
+static double READ_DOUBLE(const uint8_t* buff, size_t* position)
 {
     double _val;
     memcpy(&_val, buff + *position, 8);
@@ -47,7 +47,7 @@ static double READ_DOUBLE(const char* buff, size_t* position)
     return _val;
 }
 
-StringTable load_string_table(const char* buff)
+StringTable load_string_table(const uint8_t* buff)
 {
     size_t position = 0;
     StringTable string_table;
@@ -67,7 +67,7 @@ StringTable load_string_table(const char* buff)
     return string_table;
 }
 
-void* load_instruction(const char* buff, size_t* start_position)
+void* load_instruction(const uint8_t* buff, size_t* start_position)
 {
     size_t position = *start_position;
     Opcode opcode = (Opcode)buff[position++];
@@ -171,7 +171,7 @@ void* load_instruction(const char* buff, size_t* start_position)
     return inst;
 }
 
-DataSection load_data_section(const char* buff)
+DataSection load_data_section(const uint8_t* buff)
 {
     size_t position = 0;
     DataSection data_section;
@@ -187,7 +187,7 @@ DataSection load_data_section(const char* buff)
     return data_section;
 }
 
-JSModule module_load_from_buffer(char* buff)
+JSModule module_load_from_buffer(uint8_t* buff)
 {
     JSModule module;
     size_t position = 0;
