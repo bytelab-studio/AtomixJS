@@ -1,16 +1,9 @@
-import {Section, SectionBuilder} from "./section";
-import {Size} from "../size";
-import {Instruction, OPCODE_SIZE} from "../opcodes";
+import { Section } from "./section";
+import { Size } from "../size";
+import { Instruction, OPCODE_SIZE } from "../opcodes";
+import { BinaryWriter } from "../binary";
 
-export interface DataSection extends Section {
-    count: number;
-    instructions: Array<{
-        opcode: number;
-        operand: Buffer[];
-    }>;
-}
-
-export class DataSectionBuilder implements SectionBuilder<DataSection> {
+export class DataSection implements Section {
     private length: Size;
     private count: number;
     private instructions: Instruction[];
@@ -46,14 +39,24 @@ export class DataSectionBuilder implements SectionBuilder<DataSection> {
         return this.count;
     }
 
-    public build(): DataSection {
-        return {
-            length: this.length.inBytes(),
-            count: this.count,
-            instructions: this.instructions.map(instruction => ({
-                opcode: instruction.opcode,
-                operand: instruction.operands.map(operand => operand.raw())
-            }))
+    public getLength(): number {
+        return this.length.inBytes();
+    }
+
+    public writeTo(writer: BinaryWriter): void {
+        writer.writeU32(this.length.inBytes());
+        writer.writeU32(this.count);
+        for (const instruction of this.instructions) {
+            writer.writeU8(instruction.opcode);
+            for (const operand of instruction.operands) {
+                operand.writeTo(writer);
+            }
+        }
+    }
+
+    public *[Symbol.iterator](): Generator<[Instruction, number]> {
+        for (let i: number = 0; i < this.count; i++) {
+            yield [this.instructions[i], i];
         }
     }
 }

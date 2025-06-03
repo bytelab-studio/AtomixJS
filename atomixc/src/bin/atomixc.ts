@@ -1,6 +1,8 @@
 import {OptionSet, SubCommandSet} from "@koschel-christoph/node.options";
 import engine from "./engine";
 import compiler from "./compiler";
+import bundle from "./bundle";
+
 
 function* base(handler: SubCommandSet, commandNotFound: boolean): Generator<OptionSet> {
     let help: boolean = false;
@@ -19,6 +21,7 @@ const set = new SubCommandSet(
     "Usage: atomixc <subcommand> [<options>]",
     base,
     engine,
-    compiler
-)
+    compiler,
+    bundle
+);
 set.parse(process.argv);

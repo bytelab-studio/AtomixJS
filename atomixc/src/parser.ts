@@ -3,12 +3,12 @@ import * as path from "path";
 import * as crypto from "crypto";
 import * as babel from "@babel/parser";
 import type * as nodes from "@babel/types";
-import {StringTableBuilder} from "./format/string-table";
-import {DataSectionBuilder} from "./format/data";
-import {beginPipe} from "./pipe";
-import {buildFile, FileFormat} from "./format/file";
-import {FormatWriter} from "./writer";
-import * as dumper from "./dumper";
+import { STableSection } from "./format/stable";
+import { DataSection } from "./format/data";
+import { beginPipe } from "./pipe";
+import { buildModule, ModuleFormat } from "./format/module";
+import { BinaryWriter } from "./binary";
+import { Dumper } from "./dumper";
 import * as transform from "./transform";
 
 function hashString(s: string): [number, number] {
@@ -51,16 +51,17 @@ export function parseFile(input: string, output: string, root: string, prefix: s
     const hash: [number, number] = hashFilePath(input, root, prefix);
     transform.transformFile(result);
 
-    const stringTable: StringTableBuilder = new StringTableBuilder();
-    const dataSection: DataSectionBuilder = new DataSectionBuilder();
+    const stableSection: STableSection = new STableSection();
+    const dataSection: DataSection = new DataSection();
     beginPipe(result.program, {
-        stringTable: stringTable,
+        stable: stableSection,
         data: dataSection
     });
 
-    const file: FileFormat = buildFile(hash, stringTable.build(), dataSection.build());
-    dumper.dumpFormat(file);
-    const writer = new FormatWriter(output);
-    writer.writeFile(file);
+    const module: ModuleFormat = buildModule(hash, stableSection, dataSection);
+    const dumper: Dumper = new Dumper();
+    dumper.dumpModule(module);
+    const writer: BinaryWriter = new BinaryWriter(output);
+    module.writeTo(writer);
     writer.close();
 }

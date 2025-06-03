@@ -1,13 +1,13 @@
 import type * as nodes from "@babel/types";
-import {DataSectionBuilder} from "./format/data";
-import {StringTableBuilder} from "./format/string-table";
+import {DataSection} from "./format/data";
+import {STableSection} from "./format/stable";
 import {ConstantDoubleOperand, ConstantIntegerOperand, ConstantUNumberOperand, Instruction, Opcodes} from "./opcodes";
 
 const pipe: Record<string, (node: any, ctx: PipeContext) => void> = {};
 
 export interface PipeContext {
-    data: DataSectionBuilder;
-    stringTable: StringTableBuilder;
+    data: DataSection;
+    stable: STableSection;
 }
 
 export function beginPipe(program: nodes.Program, ctx: PipeContext) {
@@ -31,7 +31,7 @@ pipe["Program"] = (node: nodes.Program, ctx: PipeContext) => {
 }
 
 pipe["StringLiteral"] = (node: nodes.StringLiteral, ctx: PipeContext) => {
-    const idx: number = ctx.stringTable.registerString(node.value);
+    const idx: number = ctx.stable.registerString(node.value);
     ctx.data.addInstruction(new Instruction(Opcodes.LD_STRING).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
@@ -60,7 +60,7 @@ pipe["Identifier"] = (node: nodes.Identifier, ctx: PipeContext) => {
         ctx.data.addInstruction(new Instruction(Opcodes.LD_UNDF));
         return;
     }
-    const idx = ctx.stringTable.registerString(node.name);
+    const idx = ctx.stable.registerString(node.name);
     ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
@@ -179,7 +179,7 @@ pipe["ObjectExpression"] = (node: nodes.ObjectExpression, ctx: PipeContext) => {
             throw "Undefined key type";
         }
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
-        const idx: number = ctx.stringTable.registerString(property.key.name);
+        const idx: number = ctx.stable.registerString(property.key.name);
         pipeNode(property.value, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(idx, "short")));
     }
@@ -188,7 +188,7 @@ pipe["ObjectExpression"] = (node: nodes.ObjectExpression, ctx: PipeContext) => {
 pipe["ArrayExpression"] = (node: nodes.ArrayExpression, ctx: PipeContext) => {
     ctx.data.addInstruction(new Instruction(Opcodes.ARR_ALLOC));
     ctx.data.addInstruction(new Instruction(Opcodes.DUP));
-    const lengthIdx = ctx.stringTable.registerString("length");
+    const lengthIdx = ctx.stable.registerString("length");
     ctx.data.addInstruction(new Instruction(Opcodes.LD_INT).addOperand(new ConstantIntegerOperand(node.elements.length)));
     ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(lengthIdx, "short")));
 
@@ -196,7 +196,7 @@ pipe["ArrayExpression"] = (node: nodes.ArrayExpression, ctx: PipeContext) => {
     for (const element of node.elements) {
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
         pipeNode(element, ctx);
-        const indexIdx = ctx.stringTable.registerString((i++).toString());
+        const indexIdx = ctx.stable.registerString((i++).toString());
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(indexIdx, "short")));
     }
 }
@@ -210,10 +210,10 @@ function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, do
         if (doubleObject) {
             ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
         }
-        const superClassIdx: number = ctx.stringTable.registerString(obj.extra.targetClass as string);
+        const superClassIdx: number = ctx.stable.registerString(obj.extra.targetClass as string);
         ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(superClassIdx, "short")));
         if (!obj.extra.isStatic) {
-            const prototypeIdx: number = ctx.stringTable.registerString("prototype");
+            const prototypeIdx: number = ctx.stable.registerString("prototype");
             ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(prototypeIdx, "short")));
         }
     } else {
@@ -232,7 +232,7 @@ function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, do
     if (node.property.type != "Identifier") {
         throw "Undefined property";
     }
-    const idx: number = ctx.stringTable.registerString(node.property.name);
+    const idx: number = ctx.stable.registerString(node.property.name);
     ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(idx, "short")));
 }
 
@@ -246,7 +246,7 @@ pipe["AssignmentExpression"] = (node: nodes.AssignmentExpression, ctx: PipeConte
     if (node.left.type == "Identifier") {
         pipeNode(node.right, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.DUP));
-        const idx: number = ctx.stringTable.registerString(node.left.name);
+        const idx: number = ctx.stable.registerString(node.left.name);
         ctx.data.addInstruction(new Instruction(Opcodes.STORE_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
         return;
     }
@@ -264,7 +264,7 @@ pipe["AssignmentExpression"] = (node: nodes.AssignmentExpression, ctx: PipeConte
 
         pipeNode(node.left.object, ctx);
         ctx.data.addInstruction(new Instruction(Opcodes.SWAP));
-        const idx: number = ctx.stringTable.registerString(node.left.property.name);
+        const idx: number = ctx.stable.registerString(node.left.property.name);
         ctx.data.addInstruction(new Instruction(Opcodes.OBJ_STORE).addOperand(new ConstantUNumberOperand(idx, "short")));
     }
 }
@@ -283,7 +283,7 @@ pipe["VariableDeclarator"] = (node: nodes.VariableDeclarator, ctx: PipeContext) 
     }
 
     if (node.id.type == "Identifier") {
-        const idx = ctx.stringTable.registerString(node.id.name);
+        const idx = ctx.stable.registerString(node.id.name);
         ctx.data.addInstruction(new Instruction(Opcodes.ALLOC_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
     } else {
         throw "Unsupported identifier " + node.id.type;
@@ -293,7 +293,7 @@ pipe["VariableDeclarator"] = (node: nodes.VariableDeclarator, ctx: PipeContext) 
 pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: nodes.FunctionDeclaration | nodes.FunctionExpression, ctx: PipeContext) => {
     const funcStart: number = ctx.data.addInstruction(new Instruction(Opcodes.NOP));
     const idx: number = node.id
-        ? ctx.stringTable.registerString(node.id.name)
+        ? ctx.stable.registerString(node.id.name)
         : -1;
     for (let i: number = 0; i < node.params.length; i++) {
         const param: nodes.Identifier | nodes.Pattern | nodes.RestElement = node.params[i];
@@ -301,7 +301,7 @@ pipe["FunctionExpression"] = pipe["FunctionDeclaration"] = (node: nodes.Function
             throw "Unsupported param type";
         }
         ctx.data.addInstruction(new Instruction(Opcodes.LOAD_ARG).addOperand(new ConstantUNumberOperand(i + 1, "short")));
-        const idx: number = ctx.stringTable.registerString(param.name);
+        const idx: number = ctx.stable.registerString(param.name);
         ctx.data.addInstruction(new Instruction(Opcodes.ALLOC_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
     }
 
@@ -390,14 +390,14 @@ pipe["ExportNamedDeclaration"] = (node: nodes.ExportNamedDeclaration, ctx: PipeC
                 }
 
                 pipeNode(declarator.id, ctx);
-                const idx: number = ctx.stringTable.registerString(declarator.id.name);
+                const idx: number = ctx.stable.registerString(declarator.id.name);
                 ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
             }
         } else if (node.declaration.type == "FunctionDeclaration" || node.declaration.type == "ClassDeclaration") {
             if (!node.declaration.id) {
                 throw "Missing declaration id";
             }
-            const idx: number = ctx.stringTable.registerString(node.declaration.id.name);
+            const idx: number = ctx.stable.registerString(node.declaration.id.name);
             ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
         } else {
             throw "Unsupported declaration type";
@@ -408,8 +408,8 @@ pipe["ExportNamedDeclaration"] = (node: nodes.ExportNamedDeclaration, ctx: PipeC
         if (specifier.type == "ExportSpecifier") {
             pipeNode(specifier.local, ctx);
             const exportIdx: number = specifier.exported.type == "StringLiteral"
-                ? ctx.stringTable.registerString(specifier.exported.value)
-                : ctx.stringTable.registerString(specifier.exported.name);
+                ? ctx.stable.registerString(specifier.exported.value)
+                : ctx.stable.registerString(specifier.exported.name);
             ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
             continue;
         }
@@ -417,13 +417,13 @@ pipe["ExportNamedDeclaration"] = (node: nodes.ExportNamedDeclaration, ctx: PipeC
         if (specifier.type == "ExportDefaultSpecifier") {
             pipeNode(node.declaration, ctx);
             // TODO may use a symbol for default exports
-            const exportIdx: number = ctx.stringTable.registerString("default");
+            const exportIdx: number = ctx.stable.registerString("default");
             ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
             continue
         }
 
         pipeNode(specifier.exported, ctx);
-        const exportIdx: number = ctx.stringTable.registerString(specifier.exported.name);
+        const exportIdx: number = ctx.stable.registerString(specifier.exported.name);
         ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(exportIdx, "short")));
     }
 }
@@ -431,6 +431,6 @@ pipe["ExportNamedDeclaration"] = (node: nodes.ExportNamedDeclaration, ctx: PipeC
 pipe["ExportDefaultDeclaration"] = (node: nodes.ExportDefaultDeclaration, ctx: PipeContext) => {
     pipeNode(node.declaration, ctx);
     // TODO may use a symbol for default exports
-    const idx: number = ctx.stringTable.registerString("default");
+    const idx: number = ctx.stable.registerString("default");
     ctx.data.addInstruction(new Instruction(Opcodes.EXPORT).addOperand(new ConstantUNumberOperand(idx, "short")));
 }

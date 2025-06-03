@@ -1,4 +1,5 @@
-import {Size, Unit} from "./size";
+import { Size, Unit } from "./size";
+import { BinaryWriter } from "./binary";
 
 export enum Opcodes {
     NOP,
@@ -62,7 +63,7 @@ export interface Operand {
     value: number;
     length: Size;
 
-    raw(): Buffer;
+    writeTo(writer: BinaryWriter): void;
 }
 
 export class ConstantIntegerOperand implements Operand {
@@ -74,10 +75,8 @@ export class ConstantIntegerOperand implements Operand {
         this.length = Size.new(1, "int");
     }
 
-    public raw(): Buffer {
-        const buf = Buffer.alloc(4);
-        buf.writeInt32LE(this.value);
-        return buf;
+    public writeTo(writer: BinaryWriter): void {
+        writer.writeI32(this.value);
     }
 }
 
@@ -93,30 +92,25 @@ export class ConstantUNumberOperand implements Operand {
         this.unit = unit;
     }
 
-    public raw(): Buffer {
-        const buf = Buffer.alloc(this.length.inBytes());
+    public writeTo(writer: BinaryWriter): void {
         switch (this.unit) {
             case "byte":
             case "bytes":
-                buf.writeUint8(this.value, 0);
+                writer.writeU8(this.value);
                 break;
             case "short":
             case "shorts":
-                buf.writeUint16LE(this.value, 0);
+                writer.writeU16(this.value);
                 break;
             case "int":
             case "ints":
-                buf.writeUint32LE(this.value, 0);
+                writer.writeU32(this.value);
                 break;
             case "long":
             case "longs":
                 throw "Not implemented";
-            // break;
-
         }
-        return buf;
     }
-
 }
 
 export class ConstantDoubleOperand implements Operand {
@@ -128,10 +122,8 @@ export class ConstantDoubleOperand implements Operand {
         this.length = Size.new(1, "int");
     }
 
-    public raw(): Buffer {
-        const buf = Buffer.alloc(8);
-        buf.writeDoubleLE(this.value);
-        return buf;
+    public writeTo(writer: BinaryWriter): void {
+        writer.writeDouble(this.value);
     }
 }
 

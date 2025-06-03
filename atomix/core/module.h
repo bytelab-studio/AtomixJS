@@ -23,7 +23,7 @@ typedef struct
 {
     struct
     {
-        char magic[3];
+        char magic[4];
         uint16_t version;
         uint64_t hash;
         uint32_t string_table;

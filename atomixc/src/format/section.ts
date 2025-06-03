@@ -1,7 +1,7 @@
-export interface Section {
-    length: number;
-}
+import { BinaryWriter } from "../binary";
 
-export interface SectionBuilder<T extends Section> {
-    build(): T;
+export interface Section {
+    writeTo(writer: BinaryWriter): void;
+
+    getLength(): number;
 }

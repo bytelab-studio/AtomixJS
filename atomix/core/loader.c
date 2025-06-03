@@ -197,11 +197,13 @@ JSModule module_load_from_buffer(uint8_t* buff)
     module.header.magic[0] = buff[position++];
     module.header.magic[1] = buff[position++];
     module.header.magic[2] = buff[position++];
+    module.header.magic[3] = buff[position++];
 
 
     if (module.header.magic[0] != MAGIC0 ||
         module.header.magic[1] != MAGIC1 ||
-        module.header.magic[2] != MAGIC2)
+        module.header.magic[2] != MAGIC2 ||
+        module.header.magic[3] != MAGIC3)
     {
         PANIC("Invalid magic number");
     }

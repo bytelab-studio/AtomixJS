@@ -1,13 +1,8 @@
-import {Section, SectionBuilder} from "./section";
-import {Size} from "../size";
+import { Section } from "./section";
+import { Size } from "../size";
+import { BinaryWriter } from "../binary";
 
-export interface StringTable extends Section {
-    count: number;
-    offsets: number[];
-    strings: string[];
-}
-
-export class StringTableBuilder implements SectionBuilder<StringTable> {
+export class STableSection implements Section {
     private length: Size;
     private count: number;
     private offsets: Size[];
@@ -39,12 +34,24 @@ export class StringTableBuilder implements SectionBuilder<StringTable> {
         return idx;
     }
 
-    public build(): StringTable {
-        return {
-            length: this.length.inBytes(),
-            count: this.count,
-            offsets: this.offsets.map(x => x.inBytes()),
-            strings: this.strings
+    public getLength(): number {
+        return this.length.inBytes();
+    }
+
+    public writeTo(writer: BinaryWriter): void {
+        writer.writeU32(this.length.inBytes());
+        writer.writeU32(this.count);
+        for (const offset of this.offsets) {
+            writer.writeU32(offset.inBytes());
+        }
+        for (const string of this.strings) {
+            writer.writeString(string);
+        }
+    }
+
+    public *[Symbol.iterator](): Generator<[number, string, number]> {
+        for (let i: number = 0; i < this.count; i++) {
+            yield [this.offsets[i].inBytes(), this.strings[i], i];
         }
     }
 }
