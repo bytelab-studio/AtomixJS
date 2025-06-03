@@ -2,7 +2,7 @@ import { STableSection } from "./stable";
 import { Size } from "../size";
 import { DataSection } from "./data";
 import { Section } from "./section";
-import { BinaryWriter } from "../binary";
+import { BinaryReader, BinaryWriter } from "../binary";
 
 const MAGIC: [number, number, number, number] = [46, 65, 120, 77];
 const VERSION: number = 2;
@@ -42,6 +42,20 @@ export class ModuleFormat implements Section {
 
         this.stableSection.writeTo(writer);
         this.dataSection.writeTo(writer);
+    }
+
+    public readFrom(reader: BinaryReader): void {
+        this.header.magic[0] = reader.readU8();
+        this.header.magic[1] = reader.readU8();
+        this.header.magic[2] = reader.readU8();
+        this.header.magic[3] = reader.readU8();
+        this.header.version = reader.readU16();
+        this.header.hash[0] = reader.readU32();
+        this.header.hash[1] = reader.readU32();
+        this.header.stableSectionStart = reader.readU32();
+        this.header.dataSectionStart = reader.readU32();
+        this.stableSection.readFrom(reader);
+        this.dataSection.readFrom(reader);
     }
 }
 

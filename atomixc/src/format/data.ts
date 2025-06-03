@@ -1,7 +1,7 @@
 import { Section } from "./section";
 import { Size } from "../size";
-import { Instruction, OPCODE_SIZE } from "../opcodes";
-import { BinaryWriter } from "../binary";
+import { Instruction, OPCODE_SIZE, Operand } from "../opcodes";
+import { BinaryReader, BinaryWriter } from "../binary";
 
 export class DataSection implements Section {
     private length: Size;
@@ -51,6 +51,14 @@ export class DataSection implements Section {
             for (const operand of instruction.operands) {
                 operand.writeTo(writer);
             }
+        }
+    }
+
+    public readFrom(reader: BinaryReader): void {
+        this.length = Size.new(reader.readU32(), "bytes");
+        this.count = reader.readU32();
+        for (let i: number = 0; i < this.count; i++) {
+            const operand: Operand = reader.readU8();
         }
     }
 

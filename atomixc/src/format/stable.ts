@@ -1,6 +1,6 @@
 import { Section } from "./section";
 import { Size } from "../size";
-import { BinaryWriter } from "../binary";
+import { BinaryReader, BinaryWriter } from "../binary";
 
 export class STableSection implements Section {
     private length: Size;
@@ -46,6 +46,21 @@ export class STableSection implements Section {
         }
         for (const string of this.strings) {
             writer.writeString(string);
+        }
+    }
+
+    public readFrom(reader: BinaryReader): void {
+        this.length = Size.new(reader.readU32(), "bytes");
+        this.count = reader.readU32();
+        for (let i: number = 0; i < this.count; i++) {
+            this.offsets.push(Size.new(reader.readU32(), "bytes"));
+        }
+
+        for (let i: number = 0; i < this.count; i++) {
+            const start: Size = this.offsets[i];
+            const end: Size = i + 1 < this.count ? this.offsets[i + 1] : this.length;
+            const length: number = end.inBytes() - start.inBytes();
+            this.strings.push(reader.readString(length));
         }
     }
 
