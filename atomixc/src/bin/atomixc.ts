@@ -2,7 +2,7 @@ import {OptionSet, SubCommandSet} from "@koschel-christoph/node.options";
 import engine from "./engine";
 import compiler from "./compiler";
 import bundle from "./bundle";
-
+import dump from "./dump";
 
 function* base(handler: SubCommandSet, commandNotFound: boolean): Generator<OptionSet> {
     let help: boolean = false;
@@ -22,6 +22,7 @@ const set = new SubCommandSet(
     base,
     engine,
     compiler,
-    bundle
+    bundle,
+    dump
 );
 set.parse(process.argv);

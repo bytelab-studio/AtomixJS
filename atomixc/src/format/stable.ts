@@ -58,7 +58,12 @@ export class STableSection implements Section {
 
         for (let i: number = 0; i < this.count; i++) {
             const start: Size = this.offsets[i];
-            const end: Size = i + 1 < this.count ? this.offsets[i + 1] : this.length;
+            const end: Size = i + 1 < this.count
+                ? this.offsets[i + 1]
+                : this.length
+                    .copy()
+                    .subtract(2, "ints")
+                    .subtract(this.offsets.length, "ints");
             const length: number = end.inBytes() - start.inBytes();
             this.strings.push(reader.readString(length));
         }

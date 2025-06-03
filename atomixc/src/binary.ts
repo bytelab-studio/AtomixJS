@@ -77,43 +77,49 @@ export class BinaryReader {
     }
 
     public readU8(): number {
-        const val = this.buffer.readUInt8(this.pos);
+        const val: number = this.buffer.readUInt8(this.pos);
         this.pos += 1;
         return val;
     }
 
     public readI8(): number {
-        const val = this.buffer.readInt8(this.pos);
+        const val: number = this.buffer.readInt8(this.pos);
         this.pos += 1;
         return val;
     }
 
     public readU16(): number {
-        const val = this.buffer.readUInt16LE(this.pos);
+        const val: number = this.buffer.readUInt16LE(this.pos);
         this.pos += 2;
         return val;
     }
 
     public readI16(): number {
-        const val = this.buffer.readInt16LE(this.pos);
+        const val: number = this.buffer.readInt16LE(this.pos);
         this.pos += 2;
         return val;
     }
 
     public readU32(): number {
-        const val = this.buffer.readUInt32LE(this.pos);
+        const val: number = this.buffer.readUInt32LE(this.pos);
         this.pos += 4;
         return val;
     }
 
     public readI32(): number {
-        const val = this.buffer.readInt32LE(this.pos);
+        const val: number = this.buffer.readInt32LE(this.pos);
         this.pos += 4;
         return val;
     }
 
+    public readDouble(): number {
+        const val: number = this.buffer.readDoubleLE(this.pos);
+        this.pos += 8;
+        return val;
+    }
+
     public readString(length: number): string {
-        const val = this.buffer.toString('utf8', this.pos, this.pos + length);
+        const val: string = this.buffer.toString('utf8', this.pos, this.pos + length);
         this.pos += length;
         return val;
     }

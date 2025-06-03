@@ -1,8 +1,8 @@
-import { STableSection } from "./stable";
-import { Size } from "../size";
-import { DataSection } from "./data";
-import { Section } from "./section";
-import { BinaryReader, BinaryWriter } from "../binary";
+import {STableSection} from "./stable";
+import {Size} from "../size";
+import {DataSection} from "./data";
+import {Section} from "./section";
+import {BinaryReader, BinaryWriter} from "../binary";
 
 const MAGIC: [number, number, number, number] = [46, 65, 120, 77];
 const VERSION: number = 2;
@@ -54,8 +54,21 @@ export class ModuleFormat implements Section {
         this.header.hash[1] = reader.readU32();
         this.header.stableSectionStart = reader.readU32();
         this.header.dataSectionStart = reader.readU32();
+
         this.stableSection.readFrom(reader);
         this.dataSection.readFrom(reader);
+    }
+
+    public static readFrom(reader: BinaryReader): ModuleFormat {
+        const module: ModuleFormat = new ModuleFormat({
+            magic: [0, 0, 0, 0],
+            version: 0,
+            hash: [0, 0],
+            stableSectionStart: 0,
+            dataSectionStart: 0
+        }, new STableSection(), new DataSection());
+        module.readFrom(reader);
+        return module;
     }
 }
 
