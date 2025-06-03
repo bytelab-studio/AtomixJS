@@ -4,6 +4,14 @@ import {DataSection} from "./data";
 import {Section} from "./section";
 import {BinaryReader, BinaryWriter} from "../binary";
 
+export interface ModuleHeader {
+    magic: [number, number, number, number];
+    version: number;
+    hash: [number, number];
+    stableSectionStart: number;
+    dataSectionStart: number;
+}
+
 const MAGIC: [number, number, number, number] = [46, 65, 120, 77];
 const VERSION: number = 2;
 
@@ -70,14 +78,6 @@ export class ModuleFormat implements Section {
         module.readFrom(reader);
         return module;
     }
-}
-
-export interface ModuleHeader {
-    magic: [number, number, number, number];
-    version: number;
-    hash: [number, number];
-    stableSectionStart: number;
-    dataSectionStart: number;
 }
 
 export function buildModule(hash: [number, number], stableSection: STableSection, dataSection: DataSection): ModuleFormat {

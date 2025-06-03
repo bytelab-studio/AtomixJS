@@ -33,6 +33,7 @@ function* dump(handler: SubCommandSet): Generator<OptionSet> {
     for (const file of files) {
         console.log("    FILE: " + file);
         const reader: BinaryReader = new BinaryReader(file);
+        // TODO check for bundle
         dumper.dumpModule(ModuleFormat.readFrom(reader));
         console.log()
     }
