@@ -36,7 +36,8 @@ function* dump(handler: SubCommandSet): Generator<OptionSet> {
         if (ModuleFormat.isModule(reader)) {
             console.log("    MODULE: " + file);
             dumper.dumpModule(ModuleFormat.readFrom(reader));
-            console.log()
+            console.log();
+            continue;
         }
 
         console.log("    BUNDLE: " + file);
