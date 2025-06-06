@@ -283,8 +283,22 @@ pipe["VariableDeclarator"] = (node: nodes.VariableDeclarator, ctx: PipeContext) 
     }
 
     if (node.id.type == "Identifier") {
-        const idx = ctx.stable.registerString(node.id.name);
+        const idx: number = ctx.stable.registerString(node.id.name);
         ctx.data.addInstruction(new Instruction(Opcodes.ALLOC_LOCAL).addOperand(new ConstantUNumberOperand(idx, "short")));
+    } else if (node.id.type == "ObjectPattern") {
+        for (const property of node.id.properties) {
+            if (property.type != "ObjectProperty") {
+                throw "Unsupported property type";
+            }
+            if (property.key.type != "Identifier" || property.value.type != "Identifier") {
+                throw "Unsupported property type";
+            }
+            ctx.data.addInstruction(new Instruction(Opcodes.DUP));
+            const keyIdx: number = ctx.stable.registerString(property.key.name);
+            const valueIdx: number = ctx.stable.registerString(property.value.name);
+            ctx.data.addInstruction(new Instruction(Opcodes.OBJ_LOAD).addOperand(new ConstantUNumberOperand(keyIdx, "short")));
+            ctx.data.addInstruction(new Instruction(Opcodes.ALLOC_LOCAL).addOperand(new ConstantUNumberOperand(valueIdx, "short")));
+        }
     } else {
         throw "Unsupported identifier " + node.id.type;
     }

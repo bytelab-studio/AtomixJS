@@ -76,7 +76,7 @@ export class ConstantIntegerOperand implements Operand {
     }
 
     public writeTo(writer: BinaryWriter): void {
-        writer.writeI32(this.value);
+        writer.writeI32(this.value >> 0);
     }
 }
 

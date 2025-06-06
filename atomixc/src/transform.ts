@@ -1,9 +1,11 @@
+import * as path from "path";
 import traverse, {type NodePath} from "@babel/traverse";
 import * as nodes from "@babel/types";
+import {hashFilePath, hashString} from "./hash";
 
-export function transformFile(file: nodes.File): void {
-    transformPreNode(file);
-    transformPostNode(file);
+export function transformFile(file: nodes.File, input: string, root: string, prefix: string): void {
+    transformPreNode(file, input, root, prefix);
+    transformPostNode(file, input, root, prefix);
 }
 
 
@@ -17,7 +19,7 @@ function packNodes(_nodes: nodes.Statement[]): nodes.BlockStatement {
     return sth;
 }
 
-function transformPreNode(file: nodes.File): void {
+function transformPreNode(file: nodes.File, input: string, root: string, prefix: string): void {
     traverse(file, {
         enter(ctx: NodePath<nodes.Node>): void {
             console.log("C1:Enter %s", ctx.type);
@@ -80,7 +82,7 @@ function transformPreNode(file: nodes.File): void {
     });
 }
 
-function transformPostNode(file: nodes.File): void {
+function transformPostNode(file: nodes.File, input: string, root: string, prefix: string): void {
     traverse(file, {
         enter(ctx: NodePath<nodes.Node>): void {
             console.log("C2:Enter %s", ctx.type);
@@ -208,6 +210,96 @@ function transformPostNode(file: nodes.File): void {
             ctx.replaceWith(nodes.variableDeclaration("const", [
                 nodes.variableDeclarator(ctx.node.id, classDeclaration)
             ]));
+        },
+        ImportDeclaration(ctx: NodePath<nodes.ImportDeclaration>): void {
+            let source: string = ctx.node.source.value;
+            let sourceHash: [number, number];
+            if (source.startsWith(".")) {
+                source = path.join(path.basename(input), source);
+                sourceHash = hashFilePath(source, root, prefix);
+            } else {
+                sourceHash = hashString(source);
+            }
+            const defaultSpec: nodes.ImportDefaultSpecifier | undefined = ctx.node.specifiers.find(s => s.type == "ImportDefaultSpecifier");
+            const namespaceSpec: nodes.ImportNamespaceSpecifier | undefined = ctx.node.specifiers.find(s => s.type == "ImportNamespaceSpecifier");
+            const namedSpecs: nodes.ImportSpecifier[] = ctx.node.specifiers.filter(s => s.type == "ImportSpecifier");
+
+            const statements: nodes.Statement[] = [];
+            let initializer: nodes.Expression;
+
+            if (namespaceSpec) {
+                initializer = namespaceSpec.local;
+                statements.push(
+                    nodes.variableDeclaration(
+                        "const",
+                        [
+                            nodes.variableDeclarator(
+                                initializer,
+                                nodes.callExpression(
+                                    nodes.memberExpression(
+                                        nodes.identifier("Module"),
+                                        nodes.identifier("importModule"),
+                                    ),
+                                    [
+                                        nodes.numericLiteral(sourceHash[0]),
+                                        nodes.numericLiteral(sourceHash[1])
+                                    ]
+                                )
+                            )
+                        ]
+                    )
+                )
+            } else {
+                initializer = nodes.callExpression(
+                    nodes.memberExpression(
+                        nodes.identifier("Module"),
+                        nodes.identifier("importModule"),
+                    ),
+                    [
+                        nodes.numericLiteral(sourceHash[0]),
+                        nodes.numericLiteral(sourceHash[1])
+                    ]
+                );
+            }
+
+            const props: nodes.ObjectProperty[] = [];
+            if (defaultSpec) {
+                props.push(
+                    nodes.objectProperty(
+                        nodes.identifier("default"),
+                        defaultSpec.local
+                    )
+                )
+            }
+
+            for (const namedSpec of namedSpecs) {
+                props.push(
+                    nodes.objectProperty(
+                        namedSpec.imported,
+                        namedSpec.local
+                    )
+                );
+            }
+
+            if (props.length > 0) {
+                statements.push(
+                    nodes.variableDeclaration(
+                        "const",
+                        [
+                            nodes.variableDeclarator(
+                                nodes.objectPattern(props),
+                                initializer
+                            )
+                        ]
+                    )
+                );
+            } else if (!namespaceSpec) {
+                statements.push(
+                    nodes.expressionStatement(initializer)
+                );
+            }
+
+            ctx.replaceWithMultiple(statements);
         }
     });
 }
