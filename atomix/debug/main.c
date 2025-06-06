@@ -3,6 +3,7 @@
 #include "allocator.h"
 #include "loader.h"
 #include "module.h"
+#include "bundle.h"
 #include "execution.h"
 
 // #define PRINT_MEMORY_USAGE
@@ -16,7 +17,19 @@ int main(int argc, const char** argv)
     }
     const char* bin_file = argv[1];
 
-    JSModule module = module_load_from_file(bin_file);
+    JSModule module;
+    JSBundle bundle;
+    LoadResult result = unknown_load_from_file(bin_file, &module, &bundle);
+    
+    if (result == LOAD_BUNDLE) {
+        if (!bundle.entryPoint)
+        {
+            return 0;
+        }
+
+        module = bundle_get_module(bundle, bundle.entryPoint);
+    }
+
     VM vm = vm_init(module);
     while (vm.stats.instruction_counter < vm.module.data_section.count)
     {
@@ -28,7 +41,6 @@ int main(int argc, const char** argv)
 #ifdef PRINT_MEMORY_USAGE
     printf("Memory usage:\nAllocated: %zu\nFreed: %zu\n", allocated_memory, freed_memory);
 #endif
-
 
     return 0;
 }

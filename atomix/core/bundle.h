@@ -19,4 +19,6 @@ typedef struct {
     JSModule* modules;
 } JSBundle;
 
+JSModule bundle_get_module(JSBundle bundle, uint64_t hash);
+
 #endif //BUNDLE_H
