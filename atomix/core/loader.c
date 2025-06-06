@@ -218,7 +218,6 @@ static JSModule module_load_from_buffer_offset(uint8_t* buff, size_t* pos)
     module.header.magic[2] = buff[position++];
     module.header.magic[3] = buff[position++];
 
-
     if (module.header.magic[0] != MODULE_MAGIC0 ||
         module.header.magic[1] != MODULE_MAGIC1 ||
         module.header.magic[2] != MODULE_MAGIC2 ||
@@ -237,8 +236,8 @@ static JSModule module_load_from_buffer_offset(uint8_t* buff, size_t* pos)
     module.header.string_table = READ_U32(buff, position);
     module.header.data_section = READ_U32(buff, position);
 
-    module.string_table = load_string_table(buff + module.header.string_table);
-    module.data_section = load_data_section(buff + module.header.data_section);
+    module.string_table = load_string_table(buff + module.header.string_table + *pos);
+    module.data_section = load_data_section(buff + module.header.data_section + *pos);
     module.exports = object_create_object(object_get_object_prototype());
     *pos = position;
     return module;
@@ -268,7 +267,7 @@ JSBundle bundle_load_from_buffer(uint8_t* buff)
     }
 
     bundle.version = READ_U16(buff, position);
-    if (bundle.version != MODULE_VERSION)
+    if (bundle.version != BUNDLE_VERSION)
     {
         PANIC("Invalid VM Version");
     }
@@ -291,10 +290,10 @@ JSBundle bundle_load_from_buffer(uint8_t* buff)
 
 LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* bundle)
 {
-    if (buff[0] == BUNDLE_MAGIC0 ||
-        buff[1] == BUNDLE_MAGIC1 ||
-        buff[2] == BUNDLE_MAGIC2 ||
-        buff[3] == BUNDLE_MAGIC3)
+    if (buff[0] == MODULE_MAGIC0 &&
+        buff[1] == MODULE_MAGIC1 &&
+        buff[2] == MODULE_MAGIC2 &&
+        buff[3] == MODULE_MAGIC3)
     {
         *module = module_load_from_buffer(buff);
         return LOAD_MODULE;
