@@ -8,11 +8,11 @@
 #include "panic.h"
 #include "api.h"
 
-void inst_nop(VM* vm, void* ptr)
+static void inst_nop(VM* vm, void* ptr)
 {
 }
 
-void inst_ld_int(VM* vm, void* ptr)
+static void inst_ld_int(VM* vm, void* ptr)
 {
     InstInt32* inst = ptr;
     if (vm->stats.stack_counter >= STACK_SIZE)
@@ -25,7 +25,7 @@ void inst_ld_int(VM* vm, void* ptr)
     });
 }
 
-void inst_ld_double(VM* vm, void* ptr)
+static void inst_ld_double(VM* vm, void* ptr)
 {
     InstDouble* inst = ptr;
     if (vm->stats.stack_counter >= STACK_SIZE)
@@ -38,7 +38,7 @@ void inst_ld_double(VM* vm, void* ptr)
     });
 }
 
-void inst_ld_string(VM* vm, void* ptr)
+static void inst_ld_string(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter >= STACK_SIZE)
@@ -46,11 +46,11 @@ void inst_ld_string(VM* vm, void* ptr)
         PANIC("Stack overflow");
     }
 
-    char* str = string_table_load_str(&vm->module.string_table, inst->operand);
+    char* str = string_table_load_str(&vm->module->string_table, inst->operand);
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_STRING(str);
 }
 
-void inst_ld_undf(VM* vm, void* ptr)
+static void inst_ld_undf(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
@@ -59,7 +59,7 @@ void inst_ld_undf(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_UNDEFINED;
 }
 
-void inst_ld_null(VM* vm, void* ptr)
+static void inst_ld_null(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
@@ -68,7 +68,7 @@ void inst_ld_null(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_NULL;
 }
 
-void inst_ld_boolean(VM* vm, void* ptr)
+static void inst_ld_boolean(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
@@ -77,7 +77,7 @@ void inst_ld_boolean(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_BOOL(OPCODE_OF(ptr) == OP_LD_TRUE);
 }
 
-void inst_ld_this(VM* vm, void* ptr)
+static void inst_ld_this(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
@@ -86,7 +86,7 @@ void inst_ld_this(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = scope_get(vm->scope, "this");
 }
 
-void inst_add(VM* vm, void* ptr)
+static void inst_add(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -135,7 +135,7 @@ void inst_add(VM* vm, void* ptr)
     }
 }
 
-void inst_minus(VM* vm, void* ptr)
+static void inst_minus(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -183,7 +183,7 @@ void inst_minus(VM* vm, void* ptr)
     }
 }
 
-void inst_mul(VM* vm, void* ptr)
+static void inst_mul(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -233,7 +233,7 @@ void inst_mul(VM* vm, void* ptr)
     }
 }
 
-void inst_div(VM* vm, void* ptr)
+static void inst_div(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -295,7 +295,7 @@ void inst_div(VM* vm, void* ptr)
     }
 }
 
-void inst_mod(VM* vm, void* ptr)
+static void inst_mod(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -357,7 +357,7 @@ void inst_mod(VM* vm, void* ptr)
     }
 }
 
-void inst_binary_and(VM* vm, void* ptr)
+static void inst_binary_and(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -385,7 +385,7 @@ void inst_binary_and(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue & rightValue);
 }
 
-void inst_binary_or(VM* vm, void* ptr)
+static void inst_binary_or(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -433,7 +433,7 @@ void inst_binary_or(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue | rightValue);
 }
 
-void inst_binary_xor(VM* vm, void* ptr)
+static void inst_binary_xor(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -481,7 +481,7 @@ void inst_binary_xor(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue ^ rightValue);
 }
 
-void inst_binary_lshft(VM* vm, void* ptr)
+static void inst_binary_lshft(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -516,7 +516,7 @@ void inst_binary_lshft(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue << rightValue);
 }
 
-void inst_binary_rshft(VM* vm, void* ptr)
+static void inst_binary_rshft(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -551,7 +551,7 @@ void inst_binary_rshft(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(leftValue >> rightValue);
 }
 
-void inst_binary_zrshft(VM* vm, void* ptr)
+static void inst_binary_zrshft(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -587,7 +587,7 @@ void inst_binary_zrshft(VM* vm, void* ptr)
         (int)((unsigned int)leftValue >> (unsigned int)rightValue));
 }
 
-void inst_binary_not(VM* vm, void* ptr)
+static void inst_binary_not(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 1)
     {
@@ -613,7 +613,7 @@ void inst_binary_not(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_INT(~right.value.as_int);
 }
 
-void inst_not(VM* vm, void* ptr)
+static void inst_not(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 1)
     {
@@ -624,7 +624,7 @@ void inst_not(VM* vm, void* ptr)
     );
 }
 
-void inst_negate(VM* vm, void* ptr)
+static void inst_negate(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 1)
     {
@@ -656,7 +656,7 @@ void inst_negate(VM* vm, void* ptr)
     PANIC("Unknown operand type");
 }
 
-void inst_typeof(VM* vm, void* ptr)
+static void inst_typeof(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 1)
     {
@@ -689,7 +689,7 @@ void inst_typeof(VM* vm, void* ptr)
     PANIC("Unknown operand type");
 }
 
-void inst_teq(VM* vm, void* ptr)
+static void inst_teq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -747,7 +747,7 @@ void inst_teq(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
-void inst_nteq(VM* vm, void* ptr)
+static void inst_nteq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -805,7 +805,7 @@ void inst_nteq(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
-void inst_gt(VM* vm, void* ptr)
+static void inst_gt(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -865,7 +865,7 @@ void inst_gt(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
-void inst_geq(VM* vm, void* ptr)
+static void inst_geq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -925,7 +925,7 @@ void inst_geq(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
-void inst_lt(VM* vm, void* ptr)
+static void inst_lt(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -985,7 +985,7 @@ void inst_lt(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
-void inst_leq(VM* vm, void* ptr)
+static void inst_leq(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -1045,7 +1045,7 @@ void inst_leq(VM* vm, void* ptr)
     PANIC("Unknown comparison");
 }
 
-void inst_pop(VM* vm, void* ptr)
+static void inst_pop(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter == 0)
     {
@@ -1055,7 +1055,7 @@ void inst_pop(VM* vm, void* ptr)
     vm->stats.stack_counter--;
 }
 
-void inst_dup(VM* vm, void* ptr)
+static void inst_dup(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter == 0)
     {
@@ -1069,7 +1069,7 @@ void inst_dup(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = vm->stats.stack[vm->stats.stack_counter - 2];
 }
 
-void inst_swap(VM* vm, void* ptr)
+static void inst_swap(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -1080,7 +1080,7 @@ void inst_swap(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter - 1] = tmp;
 }
 
-void inst_alloc_store_local(VM* vm, void* ptr)
+static void inst_alloc_store_local(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     int is_alloc = inst->opcode == OP_ALLOC_LOCAL;
@@ -1090,7 +1090,7 @@ void inst_alloc_store_local(VM* vm, void* ptr)
     }
     JSValue value = vm->stats.stack[vm->stats.stack_counter - 1];
     vm->stats.stack_counter--;
-    char* key = string_table_load_str(&vm->module.string_table, inst->operand);
+    char* key = string_table_load_str(&vm->module->string_table, inst->operand);
     if (is_alloc)
     {
         scope_declare(vm->scope, key, value);
@@ -1103,14 +1103,14 @@ void inst_alloc_store_local(VM* vm, void* ptr)
     }
 }
 
-void inst_load_local(VM* vm, void* ptr)
+static void inst_load_local(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
         PANIC("Stack overflow");
     }
-    char* key = string_table_load_str(&vm->module.string_table, inst->operand);
+    char* key = string_table_load_str(&vm->module->string_table, inst->operand);
     if (!scope_contains(vm->scope, key, 1))
     {
         PANIC("Symbol not found");
@@ -1119,7 +1119,7 @@ void inst_load_local(VM* vm, void* ptr)
     js_free(key);
 }
 
-void inst_load_arg(VM* vm, void* ptr)
+static void inst_load_arg(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) <= inst->operand)
@@ -1132,7 +1132,7 @@ void inst_load_arg(VM* vm, void* ptr)
         = vm->stats.stack[vm->stats.stack_counter - (vm->stats.stack_counter - vm->stats.stack_start) - inst->operand - 1];
 }
 
-void inst_func_decl(VM* vm, void* ptr)
+static void inst_func_decl(VM* vm, void* ptr)
 {
     int is_function_decl = OPCODE_OF(ptr) == OP_FUNC_DECL;
     uint16_t idx;
@@ -1165,14 +1165,14 @@ void inst_func_decl(VM* vm, void* ptr)
     };
     if (is_function_decl)
     {
-        char* key = string_table_load_str(&vm->module.string_table, idx);
+        char* key = string_table_load_str(&vm->module->string_table, idx);
         scope_declare(vm->scope, key, value);
     }
     vm->stats.stack[vm->stats.stack_counter++] = value;
     vm->stats.instruction_counter += size;
 }
 
-void inst_call(VM* vm, void* ptr)
+static void inst_call(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter == 0)
@@ -1214,7 +1214,7 @@ void inst_call(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = return_value;
 }
 
-void inst_arr_alloc(VM* vm, void* ptr)
+static void inst_arr_alloc(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
@@ -1224,7 +1224,7 @@ void inst_arr_alloc(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
 }
 
-void inst_obj_alloc(VM* vm, void* ptr)
+static void inst_obj_alloc(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter >= STACK_SIZE)
     {
@@ -1234,7 +1234,7 @@ void inst_obj_alloc(VM* vm, void* ptr)
     vm->stats.stack[vm->stats.stack_counter++] = JS_VALUE_OBJECT(obj);
 }
 
-void inst_obj_store(VM* vm, void* ptr)
+static void inst_obj_store(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter < 2)
@@ -1247,14 +1247,14 @@ void inst_obj_store(VM* vm, void* ptr)
     {
         PANIC("Target is not a object");
     }
-    char* key = string_table_load_str(&vm->module.string_table, inst->operand);
+    char* key = string_table_load_str(&vm->module->string_table, inst->operand);
     JSObject* obj_ptr = obj.type == JS_FUNC
         ? ((JSFunction*)obj.value.as_pointer)->base
         : (JSObject*)obj.value.as_pointer;
     object_set_property(obj_ptr, key, value);
 }
 
-void inst_obj_load(VM* vm, void* ptr)
+static void inst_obj_load(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter < 1)
@@ -1266,7 +1266,7 @@ void inst_obj_load(VM* vm, void* ptr)
     {
         PANIC("Target is not a object");
     }
-    char* key = string_table_load_str(&vm->module.string_table, inst->operand);
+    char* key = string_table_load_str(&vm->module->string_table, inst->operand);
     JSObject* obj_ptr = obj.type == JS_FUNC
         ? ((JSFunction*)obj.value.as_pointer)->base
         : (JSObject*)obj.value.as_pointer;
@@ -1274,7 +1274,7 @@ void inst_obj_load(VM* vm, void* ptr)
     js_free(key);
 }
 
-void inst_obj_cload(VM* vm, void* ptr)
+static void inst_obj_cload(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 2)
     {
@@ -1294,7 +1294,7 @@ void inst_obj_cload(VM* vm, void* ptr)
     js_free(key);
 }
 
-void inst_obj_cstore(VM* vm, void* ptr)
+static void inst_obj_cstore(VM* vm, void* ptr)
 {
     if (vm->stats.stack_counter < 3)
     {
@@ -1314,12 +1314,12 @@ void inst_obj_cstore(VM* vm, void* ptr)
     object_set_property(obj_ptr, key, value);
 }
 
-void inst_push_scope(VM* vm, void* ptr)
+static void inst_push_scope(VM* vm, void* ptr)
 {
     vm->scope = scope_create_scope(vm->scope);
 }
 
-void inst_pop_scope(VM* vm, void* ptr)
+static void inst_pop_scope(VM* vm, void* ptr)
 {
     if (!vm->scope->parent)
     {
@@ -1329,13 +1329,13 @@ void inst_pop_scope(VM* vm, void* ptr)
     vm->scope = vm->scope->parent;
 }
 
-void inst_jmp(VM* vm, void* ptr)
+static void inst_jmp(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     vm->stats.instruction_counter = inst->operand;
 }
 
-void inst_jmp_f(VM* vm, void* ptr)
+static void inst_jmp_f(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     JSValue test = vm->stats.stack[--vm->stats.stack_counter];
@@ -1345,7 +1345,7 @@ void inst_jmp_f(VM* vm, void* ptr)
     }
 }
 
-void inst_jmp_t(VM* vm, void* ptr)
+static void inst_jmp_t(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     JSValue test = vm->stats.stack[--vm->stats.stack_counter];
@@ -1355,7 +1355,7 @@ void inst_jmp_t(VM* vm, void* ptr)
     }
 }
 
-void inst_export(VM* vm, void* ptr)
+static void inst_export(VM* vm, void* ptr)
 {
     InstUInt16* inst = ptr;
     if (vm->stats.stack_counter < 1)
@@ -1364,11 +1364,11 @@ void inst_export(VM* vm, void* ptr)
     }
 
     JSValue value = vm->stats.stack[--vm->stats.stack_counter];
-    char* key = string_table_load_str(&vm->module.string_table, inst->operand);
-    object_set_property(vm->module.exports, key, value);
+    char* key = string_table_load_str(&vm->module->string_table, inst->operand);
+    object_set_property(vm->module->exports, key, value);
 }
 
-VM vm_init(JSModule module)
+VM vm_init(JSModule* module)
 {
     VM vm;
     vm.module = module;
@@ -1376,7 +1376,6 @@ VM vm_init(JSModule module)
     vm.stats.stack_counter = 0;
     vm.stats.stack_start = 0;
     vm.globalScope = scope_create_scope(NULL);
-    vm.scope = vm.globalScope;
 
     vm.inst_set[OP_NOP] = inst_nop;
     vm.inst_set[OP_LD_INT] = inst_ld_int;
@@ -1437,14 +1436,14 @@ VM vm_init(JSModule module)
     return vm;
 }
 
-void vm_exec(VM* vm)
+static void vm_exec(VM* vm)
 {
-    if (vm->stats.instruction_counter >= vm->module.data_section.count)
+    if (vm->stats.instruction_counter >= vm->module->data_section.count)
     {
         PANIC("Instruction counter is out of bounds of the current module");
     }
 
-    void* instruction = vm->module.data_section.instructions[vm->stats.instruction_counter++];
+    void* instruction = vm->module->data_section.instructions[vm->stats.instruction_counter++];
     if (instruction == NULL || OPCODE_OF(instruction) == OP_NOP)
     {
         return;
@@ -1452,9 +1451,33 @@ void vm_exec(VM* vm)
     vm->inst_set[OPCODE_OF(instruction)](vm, instruction);
 }
 
+void vm_exec_module(VM* vm, JSModule* module)
+{
+    JSModule* current_module = vm->module;
+    VMStats stats = vm->stats;
+    Scope* scope = vm->scope;
+
+    module->scope->parent = vm->globalScope;
+
+    vm->scope = module->scope;
+    vm->module = module;
+    vm->stats.instruction_counter = 0;
+    vm->stats.stack_counter = 0;
+    vm->stats.stack_start = 0;
+
+    while (vm->stats.instruction_counter < vm->module->data_section.count)
+    {
+        vm_exec(vm);
+    }
+
+    vm->module = current_module;
+    vm->stats = stats;
+    vm->scope = scope;
+}
+
 JSValue vm_exec_function(VM* vm, JSFunction* function)
 {
-    JSModule current_module = vm->module;
+    JSModule* current_module = vm->module;
     VMStats stats = vm->stats;
     Scope* scope = vm->scope;
 
@@ -1465,7 +1488,7 @@ JSValue vm_exec_function(VM* vm, JSFunction* function)
 
     while (vm->stats.instruction_counter < function->meta.instruction_end)
     {
-        Opcode opcode = OPCODE_OF(vm->module.data_section.instructions[vm->stats.instruction_counter]);
+        Opcode opcode = OPCODE_OF(vm->module->data_section.instructions[vm->stats.instruction_counter]);
         if (opcode == OP_RETURN)
         {
             break;
@@ -1481,27 +1504,4 @@ JSValue vm_exec_function(VM* vm, JSFunction* function)
     vm->scope = scope;
 
     return return_value;
-}
-
-void vm_free(VM vm)
-{
-    Scope* scope = vm.scope;
-    int global_scope_freed = 0;
-    while (scope)
-    {
-        if (scope == vm.globalScope)
-        {
-            global_scope_freed = 1;
-        }
-        Scope* parent_scope = scope->parent;
-        scope_free(scope);
-        scope = parent_scope;
-    }
-
-    if (!global_scope_freed)
-    {
-        // GlobalScope cannot have a parent
-        // so we can just free it
-        scope_free(vm.globalScope);
-    }
 }

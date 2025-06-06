@@ -1,7 +1,7 @@
 #ifndef FUNCTION_H
 #define FUNCTION_H
 
-#include "module.h"
+#include "format.h"
 #include "object.h"
 #include "scope.h"
 #include "vm.h"
@@ -13,7 +13,7 @@ typedef struct
     JSObject* base;
     JSNativeFunction native_function;
     Scope* scope;
-    JSModule module;
+    JSModule* module;
 
     struct
     {
@@ -25,6 +25,6 @@ typedef struct
 
 JSFunction* function_create_native_function(JSNativeFunction function_ptr);
 
-JSFunction* function_create_function(Scope* parentScope, JSModule module, size_t instruction_start, size_t instruction_end);
+JSFunction* function_create_function(Scope* parentScope, JSModule* module, size_t instruction_start, size_t instruction_end);
 
 #endif //FUNCTION_H

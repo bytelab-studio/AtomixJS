@@ -1,5 +1,4 @@
 #include "loader.h"
-#include "panic.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +6,8 @@
 
 #include "allocator.h"
 #include "instruction.h"
+#include "panic.h"
+#include "scope.h"
 
 #define EXPORT_BUCKET_SIZE 16
 
@@ -29,20 +30,18 @@ static uint8_t* loader_read_file(const char* filename)
     return buffer;
 }
 
-JSModule module_load_from_file(const char* filename)
+void module_load_from_file(const char* filename, JSModule* module)
 {
     uint8_t* buffer = loader_read_file(filename);
-    JSModule module = module_load_from_buffer(buffer);
+    module_load_from_buffer(buffer, module);
     js_free(buffer);
-    return module;
 }
 
-JSBundle bundle_load_from_file(const char* filename)
+void bundle_load_from_file(const char* filename, JSBundle* bundle)
 {
     uint8_t* buffer = loader_read_file(filename);
-    JSBundle bundle = bundle_load_from_buffer(buffer);
+    bundle_load_from_buffer(buffer, bundle);
     js_free(buffer);
-    return bundle;
 }
 
 LoadResult unknown_load_from_file(const char* filename, JSModule* module, JSBundle* bundle)
@@ -209,83 +208,83 @@ static DataSection load_data_section(const uint8_t* buff)
     return data_section;
 }
 
-static JSModule module_load_from_buffer_offset(uint8_t* buff, size_t* pos)
+static void module_load_from_buffer_offset(uint8_t* buff, JSModule* module, size_t* pos)
 {
-    JSModule module;
-    size_t position = *pos;
-    module.header.magic[0] = buff[position++];
-    module.header.magic[1] = buff[position++];
-    module.header.magic[2] = buff[position++];
-    module.header.magic[3] = buff[position++];
+    module->bundle = NULL;
 
-    if (module.header.magic[0] != MODULE_MAGIC0 ||
-        module.header.magic[1] != MODULE_MAGIC1 ||
-        module.header.magic[2] != MODULE_MAGIC2 ||
-        module.header.magic[3] != MODULE_MAGIC3)
+    size_t position = *pos;
+    module->header.magic[0] = buff[position++];
+    module->header.magic[1] = buff[position++];
+    module->header.magic[2] = buff[position++];
+    module->header.magic[3] = buff[position++];
+
+    if (module->header.magic[0] != MODULE_MAGIC0 ||
+        module->header.magic[1] != MODULE_MAGIC1 ||
+        module->header.magic[2] != MODULE_MAGIC2 ||
+        module->header.magic[3] != MODULE_MAGIC3)
     {
         PANIC("Invalid magic number");
     }
 
-    module.header.version = READ_U16(buff, position);
-    if (module.header.version != MODULE_VERSION)
+    module->header.version = READ_U16(buff, position);
+    if (module->header.version != MODULE_VERSION)
     {
         PANIC("Invalid VM Version");
     }
 
-    module.header.hash = READ_U64(buff, position);
-    module.header.string_table = READ_U32(buff, position);
-    module.header.data_section = READ_U32(buff, position);
+    module->header.hash = READ_U64(buff, position);
+    module->header.string_table = READ_U32(buff, position);
+    module->header.data_section = READ_U32(buff, position);
 
-    module.string_table = load_string_table(buff + module.header.string_table + *pos);
-    module.data_section = load_data_section(buff + module.header.data_section + *pos);
-    module.exports = object_create_object(object_get_object_prototype());
+    module->string_table = load_string_table(buff + module->header.string_table + *pos);
+    module->data_section = load_data_section(buff + module->header.data_section + *pos);
+    module->initialized = 0;
+    module->exports = object_create_object(object_get_object_prototype());
+    module->scope = scope_create_scope(NULL);
     *pos = position;
-    return module;
 }
 
-JSModule module_load_from_buffer(uint8_t* buff)
+void module_load_from_buffer(uint8_t* buff, JSModule* module)
 {
     size_t pos = 0;
-    return module_load_from_buffer_offset(buff, &pos);
+    return module_load_from_buffer_offset(buff, module, &pos);
 }
 
-JSBundle bundle_load_from_buffer(uint8_t* buff)
+void bundle_load_from_buffer(uint8_t* buff, JSBundle* bundle)
 {
-    JSBundle bundle;
     size_t position = 0;
-    bundle.magic[0] = buff[position++];
-    bundle.magic[1] = buff[position++];
-    bundle.magic[2] = buff[position++];
-    bundle.magic[3] = buff[position++];
+    bundle->magic[0] = buff[position++];
+    bundle->magic[1] = buff[position++];
+    bundle->magic[2] = buff[position++];
+    bundle->magic[3] = buff[position++];
 
-    if (bundle.magic[0] != BUNDLE_MAGIC0 ||
-        bundle.magic[1] != BUNDLE_MAGIC1 ||
-        bundle.magic[2] != BUNDLE_MAGIC2 ||
-        bundle.magic[3] != BUNDLE_MAGIC3)
+    if (bundle->magic[0] != BUNDLE_MAGIC0 ||
+        bundle->magic[1] != BUNDLE_MAGIC1 ||
+        bundle->magic[2] != BUNDLE_MAGIC2 ||
+        bundle->magic[3] != BUNDLE_MAGIC3)
     {
         PANIC("Invalid magic number");
     }
 
-    bundle.version = READ_U16(buff, position);
-    if (bundle.version != BUNDLE_VERSION)
+    bundle->version = READ_U16(buff, position);
+    if (bundle->version != BUNDLE_VERSION)
     {
         PANIC("Invalid VM Version");
     }
 
-    bundle.entryPoint = READ_U64(buff, position);
-    bundle.moduleCount = READ_U16(buff, position);
-    bundle.modules = js_malloc(bundle.moduleCount * sizeof(JSModule));
-    if (!bundle.modules)
+    bundle->entryPoint = READ_U64(buff, position);
+    bundle->moduleCount = READ_U16(buff, position);
+    bundle->modules = js_malloc(bundle->moduleCount * sizeof(JSModule));
+    if (!bundle->modules)
     {
         PANIC("Could not allocate memory");
     }
 
-    for (uint16_t i = 0; i < bundle.moduleCount; i++)
+    for (uint16_t i = 0; i < bundle->moduleCount; i++)
     {
-        bundle.modules[i] = module_load_from_buffer_offset(buff, &position);
+        module_load_from_buffer_offset(buff, &bundle->modules[i], &position);
+        bundle->modules[i].bundle = bundle;
     }
-
-    return bundle;
 }
 
 LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* bundle)
@@ -295,35 +294,35 @@ LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* b
         buff[2] == MODULE_MAGIC2 &&
         buff[3] == MODULE_MAGIC3)
     {
-        *module = module_load_from_buffer(buff);
+        module_load_from_buffer(buff, module);
         return LOAD_MODULE;
     }
 
-    *bundle = bundle_load_from_buffer(buff);
+    bundle_load_from_buffer(buff, bundle);
     return LOAD_BUNDLE;
 }
 
-void module_free(JSModule module)
+void module_free(JSModule* module)
 {
-    js_free(module.string_table.offsets);
-    js_free(module.string_table.strings);
-    for (size_t i = 0; i < module.data_section.count; i++)
+    js_free(module->string_table.offsets);
+    js_free(module->string_table.strings);
+    for (size_t i = 0; i < module->data_section.count; i++)
     {
-        if (module.data_section.instructions[i] != NULL)
+        if (module->data_section.instructions[i] != NULL)
         {
-            js_free(module.data_section.instructions[i]);
+            js_free(module->data_section.instructions[i]);
         }
     }
-    js_free(module.data_section.instructions);
-    object_free(module.exports);
+    js_free(module->data_section.instructions);
+    object_free(module->exports);
 }
 
-void bundle_free(JSBundle bundle)
+void bundle_free(JSBundle* bundle)
 {
-    for (uint16_t i = 0; i < bundle.moduleCount; i++)
+    for (uint16_t i = 0; i < bundle->moduleCount; i++)
     {
-        module_free(bundle.modules[i]);
+        module_free(&bundle->modules[i]);
     }
 
-    js_free(bundle.modules);
+    js_free(bundle->modules);
 }
