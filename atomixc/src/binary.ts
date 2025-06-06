@@ -123,4 +123,8 @@ export class BinaryReader {
         this.pos += length;
         return val;
     }
+
+    public at(index: number): number {
+        return this.buffer.readUint8(index);
+    }
 }

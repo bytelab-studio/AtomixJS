@@ -78,6 +78,16 @@ export class ModuleFormat implements Section {
         module.readFrom(reader);
         return module;
     }
+
+    public static isModule(reader: BinaryReader):  boolean {
+        for (let i: number = 0; i < MAGIC.length; i++) {
+            if (reader.at(i) != MAGIC[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 export function buildModule(hash: [number, number], stableSection: STableSection, dataSection: DataSection): ModuleFormat {

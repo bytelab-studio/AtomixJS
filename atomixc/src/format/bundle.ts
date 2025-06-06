@@ -60,6 +60,27 @@ export class BundleFormat implements Section {
             this.modules.push(ModuleFormat.readFrom(reader));
         }
     }
+
+    public static readFrom(reader: BinaryReader): BundleFormat {
+        const bundle: BundleFormat = new BundleFormat({
+            magic: [0, 0, 0, 0],
+            version: 0,
+            entryHash: [0, 0],
+            count: 0
+        }, []);
+        bundle.readFrom(reader);
+        return bundle;
+    }
+
+    public static isBundle(reader: BinaryReader):  boolean {
+        for (let i: number = 0; i < MAGIC.length; i++) {
+            if (reader.at(i) != MAGIC[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 export function buildBundle(entryHash: [number, number], modules: ModuleFormat[]): BundleFormat {

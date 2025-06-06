@@ -3,6 +3,7 @@ import {OptionSet, SubCommandSet} from "@koschel-christoph/node.options";
 import {BinaryReader} from "../binary";
 import {Dumper} from "../dumper";
 import {ModuleFormat} from "../format/module";
+import {BundleFormat} from "../format/bundle";
 
 function* dump(handler: SubCommandSet): Generator<OptionSet> {
     const files: string[] = [];
@@ -31,11 +32,15 @@ function* dump(handler: SubCommandSet): Generator<OptionSet> {
     const dumper: Dumper = new Dumper();
 
     for (const file of files) {
-        console.log("    FILE: " + file);
         const reader: BinaryReader = new BinaryReader(file);
-        // TODO check for bundle
-        dumper.dumpModule(ModuleFormat.readFrom(reader));
-        console.log()
+        if (ModuleFormat.isModule(reader)) {
+            console.log("    MODULE: " + file);
+            dumper.dumpModule(ModuleFormat.readFrom(reader));
+            console.log()
+        }
+
+        console.log("    BUNDLE: " + file);
+        dumper.dumpBundle(BundleFormat.readFrom(reader));
     }
 }
 
