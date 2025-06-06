@@ -12,10 +12,17 @@ declare global {
         /**
          * Returns the internal VM export object of the current module
          */
-        getExportObj(): any;
+        getExportObj(): object;
+
+        /**
+         * Imports a module by its 64Bit hash. Requires to be integers
+         * @param hash1 - first 32Bit of the hash
+         * @param hash2 - second 32Bit of the hash
+         */
+        importModule<T extends object = object>(hash1: number, hash2: number): T;
     }
 
-    declare const module: Module;
+    declare const Module: Module;
 
     interface ObjectPrototype {
         readonly prototype: ObjectPrototype;
