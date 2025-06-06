@@ -4,6 +4,13 @@
 #include "dict.h"
 #include "object.h"
 
+#define MODULE_MAGIC0 0x2E
+#define MODULE_MAGIC1 0x41
+#define MODULE_MAGIC2 0x78
+#define MODULE_MAGIC3 0x4D
+
+#define MODULE_VERSION 2
+
 typedef struct
 {
     uint32_t length;

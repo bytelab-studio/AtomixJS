@@ -10,11 +10,10 @@
 
 #define EXPORT_BUCKET_SIZE 16
 
-JSModule module_load_from_file(const char* filename)
+static uint8_t* loader_read_file(const char* filename)
 {
     FILE* file = fopen(filename, "rb");
-    if (!file)
-    {
+    if (!file) {
         PANIC("Could not open file");
     }
     fseek(file, 0, SEEK_END);
@@ -22,16 +21,36 @@ JSModule module_load_from_file(const char* filename)
     fseek(file, 0, SEEK_SET);
 
     uint8_t* buffer = js_malloc(size);
-    if (!buffer)
-    {
+    if (!buffer) {
         PANIC("Could not allocate memory");
     }
     fread(buffer, size, 1, file);
     fclose(file);
+    return buffer;
+}
 
+JSModule module_load_from_file(const char* filename)
+{
+    uint8_t* buffer = loader_read_file(filename);
     JSModule module = module_load_from_buffer(buffer);
     js_free(buffer);
     return module;
+}
+
+JSBundle bundle_load_from_file(const char* filename)
+{
+    uint8_t* buffer = loader_read_file(filename);
+    JSBundle bundle = bundle_load_from_buffer(buffer);
+    js_free(buffer);
+    return bundle;
+}
+
+LoadResult unknown_load_from_file(const char* filename, JSModule* module, JSBundle* bundle)
+{
+    uint8_t* buffer = loader_read_file(filename);
+    LoadResult result = unknown_load_from_buffer(buffer, module, bundle);
+    js_free(buffer);
+    return result;
 }
 
 #define READ_BLOCK(buff, position, offset, shift) (((uint32_t)(uint8_t)buff[position - offset]) << shift)
@@ -50,7 +69,7 @@ static double READ_DOUBLE(const uint8_t* buff, size_t* position)
     return _val;
 }
 
-StringTable load_string_table(const uint8_t* buff)
+static StringTable load_string_table(const uint8_t* buff)
 {
     size_t position = 0;
     StringTable string_table;
@@ -70,7 +89,7 @@ StringTable load_string_table(const uint8_t* buff)
     return string_table;
 }
 
-void* load_instruction(const uint8_t* buff, size_t* start_position)
+static void* load_instruction(const uint8_t* buff, size_t* start_position)
 {
     size_t position = *start_position;
     Opcode opcode = (Opcode)buff[position++];
@@ -174,7 +193,7 @@ void* load_instruction(const uint8_t* buff, size_t* start_position)
     return inst;
 }
 
-DataSection load_data_section(const uint8_t* buff)
+static DataSection load_data_section(const uint8_t* buff)
 {
     size_t position = 0;
     DataSection data_section;
@@ -190,26 +209,26 @@ DataSection load_data_section(const uint8_t* buff)
     return data_section;
 }
 
-JSModule module_load_from_buffer(uint8_t* buff)
+static JSModule module_load_from_buffer_offset(uint8_t* buff, size_t* pos)
 {
     JSModule module;
-    size_t position = 0;
+    size_t position = *pos;
     module.header.magic[0] = buff[position++];
     module.header.magic[1] = buff[position++];
     module.header.magic[2] = buff[position++];
     module.header.magic[3] = buff[position++];
 
 
-    if (module.header.magic[0] != MAGIC0 ||
-        module.header.magic[1] != MAGIC1 ||
-        module.header.magic[2] != MAGIC2 ||
-        module.header.magic[3] != MAGIC3)
+    if (module.header.magic[0] != MODULE_MAGIC0 ||
+        module.header.magic[1] != MODULE_MAGIC1 ||
+        module.header.magic[2] != MODULE_MAGIC2 ||
+        module.header.magic[3] != MODULE_MAGIC3)
     {
         PANIC("Invalid magic number");
     }
 
     module.header.version = READ_U16(buff, position);
-    if (module.header.version != VERSION)
+    if (module.header.version != MODULE_VERSION)
     {
         PANIC("Invalid VM Version");
     }
@@ -221,7 +240,68 @@ JSModule module_load_from_buffer(uint8_t* buff)
     module.string_table = load_string_table(buff + module.header.string_table);
     module.data_section = load_data_section(buff + module.header.data_section);
     module.exports = object_create_object(object_get_object_prototype());
+    *pos = position;
     return module;
+}
+
+JSModule module_load_from_buffer(uint8_t* buff)
+{
+    size_t pos = 0;
+    return module_load_from_buffer_offset(buff, &pos);
+}
+
+JSBundle bundle_load_from_buffer(uint8_t* buff)
+{
+    JSBundle bundle;
+    size_t position = 0;
+    bundle.magic[0] = buff[position++];
+    bundle.magic[1] = buff[position++];
+    bundle.magic[2] = buff[position++];
+    bundle.magic[3] = buff[position++];
+
+    if (bundle.magic[0] != BUNDLE_MAGIC0 ||
+        bundle.magic[1] != BUNDLE_MAGIC1 ||
+        bundle.magic[2] != BUNDLE_MAGIC2 ||
+        bundle.magic[3] != BUNDLE_MAGIC3)
+    {
+        PANIC("Invalid magic number");
+    }
+
+    bundle.version = READ_U16(buff, position);
+    if (bundle.version != MODULE_VERSION)
+    {
+        PANIC("Invalid VM Version");
+    }
+
+    bundle.entryPoint = READ_U64(buff, position);
+    bundle.moduleCount = READ_U16(buff, position);
+    bundle.modules = js_malloc(bundle.moduleCount * sizeof(JSModule));
+    if (!bundle.modules)
+    {
+        PANIC("Could not allocate memory");
+    }
+
+    for (uint16_t i = 0; i < bundle.moduleCount; i++)
+    {
+        bundle.modules[i] = module_load_from_buffer_offset(buff, &position);
+    }
+
+    return bundle;
+}
+
+LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* bundle)
+{
+    if (buff[0] == BUNDLE_MAGIC0 ||
+        buff[1] == BUNDLE_MAGIC1 ||
+        buff[2] == BUNDLE_MAGIC2 ||
+        buff[3] == BUNDLE_MAGIC3)
+    {
+        *module = module_load_from_buffer(buff);
+        return LOAD_MODULE;
+    }
+
+    *bundle = bundle_load_from_buffer(buff);
+    return LOAD_BUNDLE;
 }
 
 void module_free(JSModule module)
@@ -237,4 +317,14 @@ void module_free(JSModule module)
     }
     js_free(module.data_section.instructions);
     object_free(module.exports);
+}
+
+void bundle_free(JSBundle bundle)
+{
+    for (uint16_t i = 0; i < bundle.moduleCount; i++)
+    {
+        module_free(bundle.modules[i]);
+    }
+
+    js_free(bundle.modules);
 }
