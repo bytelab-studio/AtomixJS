@@ -1,17 +1,27 @@
 #ifndef LOADER_H
 #define LOADER_H
 
-#include "module.h"
+#include "format.h"
 
-#define MAGIC0 0x2E
-#define MAGIC1 0x41
-#define MAGIC2 0x78
-#define VERSION 1
+typedef enum {
+    LOAD_BUNDLE,
+    LOAD_MODULE
+} LoadResult;
 
-JSModule module_load_from_file(const char* filename);
+void module_load_from_file(const char* filename, JSModule* module);
 
-JSModule module_load_from_buffer(char* buff);
+void module_load_from_buffer(uint8_t* buff, JSModule* module);
 
-void module_free(JSModule module);
+void bundle_load_from_file(const char* filename, JSBundle* bundle);
+
+void bundle_load_from_buffer(uint8_t* buff, JSBundle* bundle);
+
+LoadResult unknown_load_from_file(const char* filename, JSModule* module, JSBundle* bundle);
+
+LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* bundle);
+
+void module_free(JSModule* module);
+
+void bundle_free(JSBundle* bundle);
 
 #endif //LOADER_H

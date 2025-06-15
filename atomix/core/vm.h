@@ -1,7 +1,7 @@
 #ifndef VM_H
 #define VM_H
 
-#include "module.h"
+#include "format.h"
 #include "instruction.h"
 #include "scope.h"
 
@@ -17,7 +17,7 @@ typedef struct
 
 typedef struct VM
 {
-    JSModule module;
+    JSModule* module;
     Scope* globalScope;
     Scope* scope;
     VMStats stats;

@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
 
 #include "api.h"
+#include "panic.h"
 #include "execution.h"
 #include "function.h"
 
@@ -65,7 +67,31 @@ JSValue print(VM* vm, JSValue this, JSValue* args, size_t argc)
 
 JSValue module_get_export_obj(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
-    return JS_VALUE_OBJECT(vm->module.exports);
+    return JS_VALUE_OBJECT(vm->module->exports);
+}
+
+JSValue module_import_module(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (argc < 2)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+
+    if (args[0].type != JS_INTEGER || args[1].type != JS_INTEGER)
+    {
+        // TODO throw exception
+        return JS_VALUE_UNDEFINED;
+    }
+    uint64_t hash = ((uint64_t)args[0].value.as_int) << 32 | ((uint32_t)args[1].value.as_int);
+    JSModule* module = bundle_get_module(vm->module->bundle, hash);
+    if (!module->initialized)
+    {
+        module->initialized = 1;
+        vm_exec_module(vm, module);
+    }
+
+    return JS_VALUE_OBJECT(module->exports);
 }
 
 JSValue object(VM* vm, JSValue this, JSValue* args, size_t argc)
@@ -228,7 +254,10 @@ void core_init(Scope* scope)
     JSFunction* _module_get_export_obj = function_create_native_function(module_get_export_obj);
     object_set_property(_module, init_string("getExportObj"), JS_VALUE_FUNCTION(_module_get_export_obj));
 
-    scope_declare(scope, init_string("module"), JS_VALUE_OBJECT(_module));
+    JSFunction* _module_import_module = function_create_native_function(module_import_module);
+    object_set_property(_module, init_string("importModule"), JS_VALUE_FUNCTION(_module_import_module));
+
+    scope_declare(scope, init_string("Module"), JS_VALUE_OBJECT(_module));
 
     // Object
     JSFunction* _object = function_create_native_function(object);

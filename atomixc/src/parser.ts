@@ -1,16 +1,17 @@
 import * as fs from "fs";
 import * as babel from "@babel/parser";
 import type * as nodes from "@babel/types";
-import {StringTableBuilder} from "./format/string-table";
-import {DataSectionBuilder} from "./format/data";
-import {beginPipe} from "./pipe";
-import {buildFile, FileFormat} from "./format/file";
-import {FormatWriter} from "./writer";
-import * as dumper from "./dumper";
+import { STableSection } from "./format/stable";
+import { DataSection } from "./format/data";
+import { beginPipe } from "./pipe";
+import { buildModule, ModuleFormat } from "./format/module";
+import { BinaryWriter } from "./binary";
+import { Dumper } from "./dumper";
 import * as transform from "./transform";
+import {hashFilePath} from "./hash";
 
-export function parseFile(input: string, output: string): void {
-    const content = fs.readFileSync(input, "utf-8");
+export function parseFile(input: string, output: string, root: string, prefix: string): void {
+    const content: string = fs.readFileSync(input, "utf-8");
     const result: babel.ParseResult<nodes.File> = babel.parse(content, {
         sourceFilename: input,
         sourceType: "module",
@@ -25,18 +26,20 @@ export function parseFile(input: string, output: string): void {
         process.exit(1);
     }
 
-    transform.transformFile(result);
+    const hash: [number, number] = hashFilePath(input, root, prefix);
+    transform.transformFile(result, input, root, prefix);
 
-    const stringTable: StringTableBuilder = new StringTableBuilder();
-    const dataSection: DataSectionBuilder = new DataSectionBuilder();
+    const stableSection: STableSection = new STableSection();
+    const dataSection: DataSection = new DataSection();
     beginPipe(result.program, {
-        stringTable: stringTable,
+        stable: stableSection,
         data: dataSection
     });
 
-    const file: FileFormat = buildFile(stringTable.build(), dataSection.build());
-    dumper.dumpFormat(file);
-    const writer = new FormatWriter(output);
-    writer.writeFile(file);
+    const module: ModuleFormat = buildModule(hash, stableSection, dataSection);
+    const dumper: Dumper = new Dumper();
+    dumper.dumpModule(module);
+    const writer: BinaryWriter = new BinaryWriter(output);
+    module.writeTo(writer);
     writer.close();
 }
