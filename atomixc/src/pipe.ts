@@ -204,13 +204,13 @@ pipe["ArrayExpression"] = (node: nodes.ArrayExpression, ctx: PipeContext) => {
 function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
     if (node.object.type == "Super") {
         const obj: nodes.Super = node.object;
-        if (!obj.extra || !obj.extra.targetClass || !obj.extra.isStatic) {
+        if (!obj.extra || !obj.extra.targetName || !obj.extra.isStatic) {
             throw "Missing meta data";
         }
         if (doubleObject) {
             ctx.data.addInstruction(new Instruction(Opcodes.LD_THIS));
         }
-        const superClassIdx: number = ctx.stable.registerString(obj.extra.targetClass as string);
+        const superClassIdx: number = ctx.stable.registerString(obj.extra.targetName as string);
         ctx.data.addInstruction(new Instruction(Opcodes.LOAD_LOCAL).addOperand(new ConstantUNumberOperand(superClassIdx, "short")));
         if (!obj.extra.isStatic) {
             const prototypeIdx: number = ctx.stable.registerString("prototype");
