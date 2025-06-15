@@ -72,11 +72,6 @@ JSValue module_get_export_obj(VM* vm, JSValue this, JSValue* args, size_t argc)
 
 JSValue module_import_module(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
-    if (vm->module->bundle == NULL)
-    {
-        PANIC("Module is not linked to a bundle");
-    }
-
     if (argc < 2)
     {
         // TODO throw exception
@@ -295,4 +290,9 @@ void core_init(Scope* scope)
 
     JSFunction* _call = function_create_native_function(call);
     object_set_property(_function->base->prototype, init_string("call"), JS_VALUE_FUNCTION(_call));
+
+    // Test
+    JSObject* _mod = object_create_object(object_get_object_prototype());
+    object_set_property(_mod, init_string("message"), JS_VALUE_STRING(init_string("Hello World")));
+    register_native_module(14483397068751133210ULL/* "mod" */, _mod);
 }

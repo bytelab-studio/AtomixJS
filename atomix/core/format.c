@@ -6,6 +6,7 @@
 
 #include "allocator.h"
 #include "panic.h"
+#include "api.h"
 
 char* string_table_load_str(StringTable* table, uint32_t idx)
 {
@@ -26,25 +27,37 @@ char* string_table_load_str(StringTable* table, uint32_t idx)
 
 JSModule* bundle_get_module(JSBundle* bundle, uint64_t hash)
 {
-    uint16_t low = 0;
-    uint16_t high = bundle->moduleCount;
-    while(1)
+    if (bundle) {
+        uint16_t low = 0;
+        uint16_t high = bundle->moduleCount;
+        while(low <= high)
+        {
+            uint16_t mid = low + (high - low) / 2;
+
+            JSModule* module = &bundle->modules[mid];
+            if (module->header.hash == hash)
+            {
+                return module;
+            }
+
+            if (module->header.hash < hash) 
+            {
+                low = mid + 1;
+            } else
+            {
+                high = mid - 1;
+            }
+        }
+    }
+    
+    NativeModuleList* entry = native_modules;
+    while(entry != NULL)
     {
-        uint16_t mid = low + (high - low) / 2;
-
-        JSModule* module = &bundle->modules[mid];
-        if (module->header.hash == hash)
+        if (entry->module->header.hash == hash)
         {
-            return module;
+            return entry->module;
         }
-
-        if (module->header.hash < hash) 
-        {
-            low = mid + 1;
-        } else
-        {
-            high = mid - 1;
-        }
+        entry = entry->next;
     }
 
     PANIC("Could not find module in bundle");

@@ -47,3 +47,26 @@ char* init_string(char* str)
     copy[len] = '\0';
     return copy;
 }
+
+NativeModuleList* native_modules = NULL;
+
+void register_native_module(uint64_t hash, JSObject* exports)
+{
+    NativeModuleList* entry = js_malloc(sizeof(NativeModuleList));
+    JSModule* module = js_malloc(sizeof(JSModule));
+    memset(module, 0, sizeof(JSModule));
+    module->header.hash = hash;
+    module->initialized = 1;
+    module->exports = exports;
+    
+    entry->module = module;
+    entry->next = native_modules;
+
+    if (!native_modules)
+    {
+        native_modules = entry;
+        return;
+    }
+
+    native_modules = entry;
+}
