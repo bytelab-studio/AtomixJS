@@ -204,7 +204,7 @@ pipe["ArrayExpression"] = (node: nodes.ArrayExpression, ctx: PipeContext) => {
 function pipeMemberExpression(node: nodes.MemberExpression, ctx: PipeContext, doubleObject: boolean) {
     if (node.object.type == "Super") {
         const obj: nodes.Super = node.object;
-        if (!obj.extra || !obj.extra.targetName || !obj.extra.isStatic) {
+        if (!obj.extra || !obj.extra.targetName || typeof obj.extra.isStatic != "boolean")  {
             throw "Missing meta data";
         }
         if (doubleObject) {
