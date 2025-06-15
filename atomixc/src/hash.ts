@@ -1,12 +1,21 @@
-import * as crypto from "crypto";
 import * as path from "path";
 
+const FNV_OFFSET_BASIS: bigint = 0xCBF29CE484222325n;
+const FNV_PRIME: bigint = 0x100000001b3n;
+
 export function hashString(s: string): [number, number] {
-    const hash: Buffer = crypto.createHash("sha256").update(s).digest();
+    let hash: bigint = FNV_OFFSET_BASIS;
+    const buff = Buffer.from(s);
+
+    for (let i = 0; i < buff.length; i++) {
+        hash ^= BigInt(buff[i]);
+        hash ^= FNV_PRIME;
+        hash &= 0xFFFFFFFFFFFFFFFFn;
+    }
 
     return [
-        hash.readUInt32LE(0) >>> 0,
-        hash.readUInt32LE(4) >>> 0
+        Number(hash & 0xFFFFFFFFn) >>> 0,
+        Number((hash >> 32n) & 0xFFFFFFFFn) >>> 0
     ];
 }
 
