@@ -3,6 +3,7 @@ import engine from "./engine";
 import compiler from "./compiler";
 import bundle from "./bundle";
 import dump from "./dump";
+import hash from "./hash";
 
 function* base(handler: SubCommandSet, commandNotFound: boolean): Generator<OptionSet> {
     let help: boolean = false;
@@ -23,6 +24,7 @@ const set = new SubCommandSet(
     engine,
     compiler,
     bundle,
-    dump
+    dump,
+    hash
 );
 set.parse(process.argv);
