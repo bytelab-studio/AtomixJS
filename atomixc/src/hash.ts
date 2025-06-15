@@ -8,7 +8,7 @@ export function hashString(s: string): [number, number] {
     const buff = Buffer.from(s);
 
     for (let i = 0; i < buff.length; i++) {
-        hash ^= BigInt(buff[i]);
+        hash *= BigInt(buff[i]);
         hash ^= FNV_PRIME;
         hash &= 0xFFFFFFFFFFFFFFFFn;
     }
