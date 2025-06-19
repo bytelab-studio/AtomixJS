@@ -192,7 +192,7 @@ export class EngineBuilder {
         createFolder(base);
 
         const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, "bdwgc")).filter(file => file.endsWith(".c"));
-        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "bdwgc"), "-I", path.join(ENGINE_BASE, "bdwgc", "private"), "-DENABLE_THREADS=0", "-DGC_DISABLE_INCREMENTAL=1", "-DNO_INCREMENTAL=1", "-DNO_CLOCK=1", "-ULARGE_CONFIG", "-DSTATIC_LINK", "-DGC_NO_GETCONTEXT", "-Wno-macro-redefined"]);
+        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "bdwgc"), "-I", path.join(ENGINE_BASE, "bdwgc", "private"), "-DENABLE_THREADS=0", "-DGC_DISABLE_INCREMENTAL=1", "-DNO_INCREMENTAL=1", "-DNO_CLOCK=1", "-ULARGE_CONFIG", "-DSTATIC_LINK", "-DNO_GETCONTEXT ", "-Wno-macro-redefined"]);
         
         const result: string = path.join(this.objFolder, "libgc.a");
         this.gateway.archiver.archive(objectFiles, result, []);
