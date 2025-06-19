@@ -2,9 +2,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gc.h>
 
 #include "panic.h"
-#include "allocator.h"
 #include "api.h"
 #include "object.h"
 
@@ -46,7 +46,7 @@ int value_is_NaN(JSValue* value)
 static char* int_to_string(int value)
 {
     int size = snprintf(NULL, 0, "%d", value);
-    char* str = js_malloc(size + 1);
+    char* str = GC_malloc_atomic(size + 1);
     if (!str)
     {
         PANIC("Could not allocate memory");
@@ -65,7 +65,7 @@ static char* double_to_string(double value)
     }
 
     int size = snprintf(NULL, 0, "%.7g", value);
-    char* str = js_malloc(size + 1);
+    char* str = GC_malloc_atomic(size + 1);
     if (!str)
     {
         PANIC("Could not allocate memory");

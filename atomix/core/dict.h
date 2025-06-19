@@ -27,8 +27,4 @@ JSValue* dict_get(JSDict* dict, char* key);
 
 int dict_delete(JSDict* dict, char* key);
 
-void dict_free(JSDict* dict);
-
-
-
 #endif //DICT_H

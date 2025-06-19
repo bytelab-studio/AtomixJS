@@ -15,8 +15,6 @@ void object_set_property(JSObject* obj, char* key, JSValue value);
 
 JSValue object_get_property(JSObject* obj, char* key);
 
-void object_free(JSObject* obj);
-
 JSObject* object_get_object_prototype();
 
 JSObject* object_get_array_prototype();

@@ -21,6 +21,4 @@ int scope_contains(const Scope* scope, char* key, int parent_scopes);
 
 int scope_delete(const Scope* scope, char* key);
 
-void scope_free(Scope* scope);
-
 #endif //SCOPE_H
