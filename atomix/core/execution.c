@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "allocator.h"
 #include "panic.h"
 #include "api.h"
 
@@ -1116,7 +1115,6 @@ static void inst_load_local(VM* vm, void* ptr)
         PANIC("Symbol not found");
     }
     vm->stats.stack[vm->stats.stack_counter++] = scope_get(vm->scope, key);
-    js_free(key);
 }
 
 static void inst_load_arg(VM* vm, void* ptr)
@@ -1271,7 +1269,6 @@ static void inst_obj_load(VM* vm, void* ptr)
         ? ((JSFunction*)obj.value.as_pointer)->base
         : (JSObject*)obj.value.as_pointer;
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
-    js_free(key);
 }
 
 static void inst_obj_cload(VM* vm, void* ptr)
@@ -1291,7 +1288,6 @@ static void inst_obj_cload(VM* vm, void* ptr)
         : obj.value.as_pointer;
     char* key = value_to_string(&value);
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
-    js_free(key);
 }
 
 static void inst_obj_cstore(VM* vm, void* ptr)

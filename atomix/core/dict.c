@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gc.h>
 
-#include "allocator.h"
 #include "panic.h"
 
 #define HASH_SEED 5381
@@ -22,12 +22,12 @@ static uint32_t hash_string(const char* str, size_t bucket_count)
 
 JSDict* dict_create_dict(size_t bucket_count)
 {
-    JSDict* dict = js_malloc(sizeof(JSDict));
+    JSDict* dict = GC_malloc(sizeof(JSDict));
     if (!dict)
     {
         PANIC("Could not allocate memory");
     }
-    dict->buckets = js_calloc(bucket_count, sizeof(JSProperty*));
+    dict->buckets = GC_malloc(bucket_count * sizeof(JSProperty*));
     dict->bucket_count = bucket_count;
     return dict;
 }
@@ -52,7 +52,7 @@ int dict_set(JSDict* dict, char* key, JSValue value, int update_only)
         return 0;
     }
 
-    JSProperty* new_entry = js_malloc(sizeof(JSProperty));
+    JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
     if (!new_entry)
     {
         PANIC("Could not allocate memory");
@@ -120,30 +120,9 @@ int dict_delete(JSDict* dict, char* key)
                 }
                 prev->next = entry->next;
             }
-            js_free(entry->key);
-            js_free(entry);
             return 1;
         }
     }
     return 0;
 }
 
-void dict_free(JSDict* dict)
-{
-    for (size_t i = 0; i < dict->bucket_count; i++)
-    {
-        JSProperty* entry = dict->buckets[i];
-        while (entry)
-        {
-            JSProperty* next = entry->next;
-            js_free(entry->key);
-            js_free(entry);
-            entry = next;
-        }
-    }
-    if (dict->buckets)
-    {
-        js_free(dict->buckets);
-    }
-    js_free(dict);
-}

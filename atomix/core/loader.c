@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gc.h>
 
-#include "allocator.h"
 #include "instruction.h"
 #include "panic.h"
 #include "scope.h"
@@ -21,7 +21,7 @@ static uint8_t* loader_read_file(const char* filename)
     size_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    uint8_t* buffer = js_malloc(size);
+    uint8_t* buffer = GC_malloc_uncollectable(size);
     if (!buffer) {
         PANIC("Could not allocate memory");
     }
@@ -34,21 +34,21 @@ void module_load_from_file(const char* filename, JSModule* module)
 {
     uint8_t* buffer = loader_read_file(filename);
     module_load_from_buffer(buffer, module);
-    js_free(buffer);
+    GC_free(buffer);
 }
 
 void bundle_load_from_file(const char* filename, JSBundle* bundle)
 {
     uint8_t* buffer = loader_read_file(filename);
     bundle_load_from_buffer(buffer, bundle);
-    js_free(buffer);
+    GC_free(buffer);
 }
 
 LoadResult unknown_load_from_file(const char* filename, JSModule* module, JSBundle* bundle)
 {
     uint8_t* buffer = loader_read_file(filename);
     LoadResult result = unknown_load_from_buffer(buffer, module, bundle);
-    js_free(buffer);
+    GC_free(buffer);
     return result;
 }
 
@@ -75,14 +75,14 @@ static StringTable load_string_table(const uint8_t* buff)
 
     string_table.length = READ_U32(buff, position);
     string_table.count = READ_U32(buff, position);
-    string_table.offsets = js_malloc(string_table.count * sizeof(uint32_t));
+    string_table.offsets = GC_malloc(string_table.count * sizeof(uint32_t));
     if (!string_table.offsets)
     {
         PANIC("Could not allocate memory");
     }
     memcpy(string_table.offsets, buff + position, string_table.count * sizeof(uint32_t));
     size_t str_buff_length = string_table.length - string_table.count * sizeof(uint32_t) - 2 * sizeof(uint32_t);
-    string_table.strings = js_malloc(str_buff_length);
+    string_table.strings = GC_malloc(str_buff_length);
     memcpy(string_table.strings, buff + position + string_table.count * sizeof(uint32_t), str_buff_length);
 
     return string_table;
@@ -101,7 +101,7 @@ static void* load_instruction(const uint8_t* buff, size_t* start_position)
         break;
     case OP_LD_INT:
         {
-            InstInt32* x = js_malloc(sizeof(InstInt32));
+            InstInt32* x = GC_malloc_atomic(sizeof(InstInt32));
             x->opcode = opcode;
             x->operand = READ_I32(buff, position);
             inst = x;
@@ -109,7 +109,7 @@ static void* load_instruction(const uint8_t* buff, size_t* start_position)
         }
     case OP_LD_DOUBLE:
         {
-            InstDouble* x = js_malloc(sizeof(InstDouble));
+            InstDouble* x = GC_malloc_atomic(sizeof(InstDouble));
             x->opcode = opcode;
             x->operand = READ_DOUBLE(buff, &position);
             inst = x;
@@ -152,7 +152,7 @@ static void* load_instruction(const uint8_t* buff, size_t* start_position)
     case OP_PUSH_SCOPE:
     case OP_POP_SCOPE:
         {
-            Inst* x = js_malloc(sizeof(Inst));
+            Inst* x = GC_malloc_atomic(sizeof(Inst));
             x->opcode = opcode;
             inst = x;
             break;
@@ -171,7 +171,7 @@ static void* load_instruction(const uint8_t* buff, size_t* start_position)
     case OP_JMP_T:
     case OP_EXPORT:
         {
-            InstUInt16* x = js_malloc(sizeof(InstUInt16));
+            InstUInt16* x = GC_malloc_atomic(sizeof(InstUInt16));
             x->opcode = opcode;
             x->operand = READ_U16(buff, position);
             inst = x;
@@ -179,7 +179,7 @@ static void* load_instruction(const uint8_t* buff, size_t* start_position)
         }
     case OP_FUNC_DECL:
         {
-            Inst2UInt16* x = js_malloc(sizeof(Inst2UInt16));
+            Inst2UInt16* x = GC_malloc_atomic(sizeof(Inst2UInt16));
             x->opcode = opcode;
             x->operand = READ_U16(buff, position);
             x->operand2 = READ_U16(buff, position);
@@ -199,7 +199,7 @@ static DataSection load_data_section(const uint8_t* buff)
 
     data_section.length = READ_U32(buff, position);
     data_section.count = READ_U32(buff, position);
-    data_section.instructions = js_malloc(data_section.count * sizeof(void*));
+    data_section.instructions = GC_malloc(data_section.count * sizeof(void*));
     for (size_t i = 0; i < data_section.count; i++)
     {
         data_section.instructions[i] = load_instruction(buff, &position);
@@ -274,7 +274,7 @@ void bundle_load_from_buffer(uint8_t* buff, JSBundle* bundle)
 
     bundle->entryPoint = READ_U64(buff, position);
     bundle->moduleCount = READ_U16(buff, position);
-    bundle->modules = js_malloc(bundle->moduleCount * sizeof(JSModule));
+    bundle->modules = GC_malloc(bundle->moduleCount * sizeof(JSModule));
     if (!bundle->modules)
     {
         PANIC("Could not allocate memory");
@@ -300,29 +300,4 @@ LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* b
 
     bundle_load_from_buffer(buff, bundle);
     return LOAD_BUNDLE;
-}
-
-void module_free(JSModule* module)
-{
-    js_free(module->string_table.offsets);
-    js_free(module->string_table.strings);
-    for (size_t i = 0; i < module->data_section.count; i++)
-    {
-        if (module->data_section.instructions[i] != NULL)
-        {
-            js_free(module->data_section.instructions[i]);
-        }
-    }
-    js_free(module->data_section.instructions);
-    object_free(module->exports);
-}
-
-void bundle_free(JSBundle* bundle)
-{
-    for (uint16_t i = 0; i < bundle->moduleCount; i++)
-    {
-        module_free(&bundle->modules[i]);
-    }
-
-    js_free(bundle->modules);
 }

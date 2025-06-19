@@ -4,6 +4,7 @@
 
 ```text
 atomix/
+├── bdwgc/               # Implementation of Boehm-Demers-Weiser conservative garbage collector
 ├── core/                # Core SourceCode actual VM definition
 ├── modules/             # Domain specific modules
 │   └── core/            # Core module for exposing VM functionalities

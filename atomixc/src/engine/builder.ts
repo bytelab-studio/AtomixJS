@@ -151,6 +151,7 @@ export class EngineBuilder {
 
     public create(): void {
         const includes: string[] = [
+            this.compileGarbageCollector(),
             this.compileCore(),
             this.compileLoader(),
             this.compileModLoader(),
@@ -170,17 +171,39 @@ export class EngineBuilder {
 
     public cdf(): CDFItem[] {
         return [
+            ...this.getGarbageCollectorCDF(),
             ...this.getCoreCDF(),
             ...this.getLoaderCDF(),
             ...this.modules.map(module => this.getModuleCDF(module)).flat()
         ];
     }
 
+    private getGarbageCollectorCDF(): CDFItem[] {
+        const files: string[] = this.readdirSync(path.join(ENGINE_BASE, "bdwgc")).filter(file => file.endsWith(".c"));
+        return files.map(file => ({
+            directory: ENGINE_BASE,
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "bdwgc", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "bdwgc"), "-I", path.join(ENGINE_BASE, "bdwgc", "private"), "-DENABLE_THREADS=0", "-DGC_DISABLE_INCREMENTAL=1", "-DNO_INCREMENTAL=1", "-DNO_CLOCK=1", "-ULARGE_CONFIG", "-DSTATIC_LINK", "-DNO_GETCONTEXT", "-DNO_EXECUTE_PERMISSION", "-Wno-macro-redefined"]),
+            file: file
+        }));
+    }
+
+    private compileGarbageCollector(): string {
+        const base: string = path.join(this.objFolder, "bdwgc");
+        createFolder(base);
+
+        const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, "bdwgc")).filter(file => file.endsWith(".c"));
+        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "bdwgc"), "-I", path.join(ENGINE_BASE, "bdwgc", "private"), "-DENABLE_THREADS=0", "-DGC_DISABLE_INCREMENTAL=1", "-DNO_INCREMENTAL=1", "-DNO_CLOCK=1", "-ULARGE_CONFIG", "-DSTATIC_LINK", "-DNO_GETCONTEXT", "-DNO_EXECUTE_PERMISSION", "-Wno-macro-redefined"]);
+        
+        const result: string = path.join(this.objFolder, "libgc.a");
+        this.gateway.archiver.archive(objectFiles, result, []);
+        return result;
+    }
+
     private getCoreCDF(): CDFItem[] {
         const files: string[] = this.readdirSync(path.join(ENGINE_BASE, "core")).filter(file => file.endsWith(".c"));
         return files.map(file => ({
             directory: ENGINE_BASE,
-            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "core", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core")]),
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "core", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", path.join(ENGINE_BASE, "bdwgc")]),
             file: file,
         }));
     }
@@ -190,7 +213,7 @@ export class EngineBuilder {
         createFolder(base);
 
         const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, "core")).filter(file => file.endsWith(".c"));
-        const objectFiles: string[] = this.compileCFiles(inputFiles, base, []);
+        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "bdwgc")]);
 
         const result: string = path.join(this.objFolder, "libcore.a");
         this.gateway.archiver.archive(objectFiles, result, []);
@@ -202,7 +225,7 @@ export class EngineBuilder {
         const files: string[] = this.readdirSync(base).filter(file => file.endsWith(".c"));
         return files.map(file => ({
             directory: ENGINE_BASE,
-            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "loader", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", base]),
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, "loader", path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", base, "-I", path.join(ENGINE_BASE, "bdwgc")]),
             file: file,
         }));
     }
@@ -212,7 +235,7 @@ export class EngineBuilder {
         createFolder(base);
 
         const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, this.debug ? "debug" : "release")).filter(file => file.endsWith(".c"));
-        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "core")]);
+        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "core"), "-I", path.join(ENGINE_BASE, "bdwgc")]);
 
         const result: string = path.join(this.objFolder, "libloader.a");
         this.gateway.archiver.archive(objectFiles, result, []);
@@ -255,7 +278,7 @@ export class EngineBuilder {
         const files: string[] = this.readdirSync(base).filter(file => file.endsWith(".c"));
         return files.map(file => ({
             directory: ENGINE_BASE,
-            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, `mod_${module}`, path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", base]),
+            arguments: this.gateway.compiler.buildCDFArray(path.join(this.objFolder, `mod_${module}`, path.basename(file) + ".o"), ["-I", path.join(ENGINE_BASE, "core"), "-I", base, "-I", path.join(ENGINE_BASE, "bdwgc")]),
             file: file
         }));
     }
@@ -265,7 +288,7 @@ export class EngineBuilder {
         createFolder(base);
 
         const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, "modules", module)).filter(file => file.endsWith(".c"));
-        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "core")]);
+        const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "core"), "-I", path.join(ENGINE_BASE, "bdwgc")]);
 
         const result: string = path.join(this.objFolder, `libmod_${module}.a`);
         this.gateway.archiver.archive(objectFiles, result, []);

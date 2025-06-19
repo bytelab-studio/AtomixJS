@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gc.h>
 
-#include "allocator.h"
 #include "function.h"
 #include "panic.h"
 #include "execution.h"
@@ -42,7 +42,7 @@ void bind_modules(Scope* scope) {
 char* init_string(char* str)
 {
     size_t len = strlen(str);
-    char* copy = js_malloc(len + 1);
+    char* copy = GC_malloc_atomic(len + 1);
     strcpy(copy, str);
     copy[len] = '\0';
     return copy;
@@ -52,8 +52,8 @@ NativeModuleList* native_modules = NULL;
 
 void register_native_module(uint64_t hash, JSObject* exports)
 {
-    NativeModuleList* entry = js_malloc(sizeof(NativeModuleList));
-    JSModule* module = js_malloc(sizeof(JSModule));
+    NativeModuleList* entry = GC_malloc(sizeof(NativeModuleList));
+    JSModule* module = GC_malloc(sizeof(JSModule));
     memset(module, 0, sizeof(JSModule));
     module->header.hash = hash;
     module->initialized = 1;

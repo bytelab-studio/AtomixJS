@@ -1,12 +1,13 @@
-#include <string.h>
 #include "object.h"
-#include "allocator.h"
+
+#include <string.h>
+#include <gc.h>
 
 #define OBJECT_BUCKET_SIZE 16
 
 JSObject* object_create_object(JSObject* prototype)
 {
-    JSObject* obj = js_malloc(sizeof(JSObject));
+    JSObject* obj = GC_malloc(sizeof(JSObject));
     obj->prototype = prototype;
     obj->properties = dict_create_dict(OBJECT_BUCKET_SIZE);
     return obj;
@@ -29,12 +30,6 @@ JSValue object_get_property(JSObject* obj, char* key)
         return object_get_property(obj->prototype, key);
     }
     return JS_VALUE_UNDEFINED;
-}
-
-void object_free(JSObject* obj)
-{
-    dict_free(obj->properties);
-    js_free(obj);
 }
 
 JSObject* object_prototype = NULL;

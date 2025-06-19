@@ -20,8 +20,4 @@ LoadResult unknown_load_from_file(const char* filename, JSModule* module, JSBund
 
 LoadResult unknown_load_from_buffer(uint8_t* buff, JSModule* module, JSBundle* bundle);
 
-void module_free(JSModule* module);
-
-void bundle_free(JSBundle* bundle);
-
 #endif //LOADER_H

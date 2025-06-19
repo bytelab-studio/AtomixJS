@@ -1,11 +1,9 @@
 #include <stdio.h>
+#include <gc.h>
 
-#include "allocator.h"
 #include "loader.h"
 #include "format.h"
 #include "execution.h"
-
-// #define PRINT_MEMORY_USAGE
 
 static JSModule _module;
 static JSBundle _bundle;
@@ -15,6 +13,7 @@ static JSBundle* bundle = &_bundle;
 
 int main(int argc, const char** argv)
 {
+    GC_init();
     if (argc < 2)
     {
         printf("Usage: ./atomix <filename>\n");
@@ -35,10 +34,6 @@ int main(int argc, const char** argv)
 
     VM vm = vm_init(module);
     vm_exec_module(&vm, module);    
-
-#ifdef PRINT_MEMORY_USAGE
-    printf("Memory usage:\nAllocated: %zu\nFreed: %zu\n", allocated_memory, freed_memory);
-#endif
 
     return 0;
 }
