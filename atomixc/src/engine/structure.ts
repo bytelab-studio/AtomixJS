@@ -55,7 +55,7 @@ export function initStructure(base: string): void {
     }
 }
 
-export function initEngineBuild(base: string, platform: EnginePlatform, architecture: EngineArchitecture): void {
+export function initEngineBuild(base: string, platform: EnginePlatform, architecture: EngineArchitecture, release: boolean, name: string|null, bytecode: string|null): void {
     const dir: string = path.join(base, ".atomix");
     const FOLDERS: string[][] = [
         ["obj", "Debug"],
@@ -71,7 +71,7 @@ export function initEngineBuild(base: string, platform: EnginePlatform, architec
         createFolder(path.join(dir, ...folder));
     }
 
-    EngineBuilder.createEngine(base, platform, architecture, EngineBuilder.getAllModules(), true);
+    EngineBuilder.createEngine(base, platform, architecture, EngineBuilder.getAllModules(), !release, name, bytecode);
 }
 
 export function generateCDF(output: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[]): void {

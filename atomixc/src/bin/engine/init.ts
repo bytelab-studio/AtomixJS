@@ -14,11 +14,17 @@ function* init(handler: SubCommandSet): Generator<OptionSet> {
     let help: boolean = false;
     let platform: string | null = null;
     let architecture: string | null = null;
+    let name: string | null = null;
+    let bytecode: string | null = null;
+    let release: boolean = false;
 
     const set: OptionSet = new OptionSet(
         "Usage: atomixc engine init -p <platform> -a <arch> [<options>]",
         ["p=|platform=", "The target engine {platform}", v => platform = v],
         ["a=|arch=", "The target engine {architecture}", v => architecture = v],
+        ["n=|name=", "The output {name}", v => name = v],
+        ["bc=", "The {bytecode} file that should be embedded", v => bytecode = v],
+        ["r|release", "Build a release version", () => release = true],
         ["h|help", "Prints this help text", () => help = true]
     );
 
@@ -47,8 +53,24 @@ function* init(handler: SubCommandSet): Generator<OptionSet> {
         process.exit(1);
     }
 
+    if (release && name == null) {
+        console.log("Missing executable name.");
+        console.log();
+
+        set.printHelpString(process.stdout);
+        process.exit(1);
+    }
+
+    if (release && bytecode == null) {
+        console.log("Missing bytecode file.");
+        console.log();
+
+        set.printHelpString(process.stdout);
+        process.exit(1);
+    }
+
     structure.initStructure(process.cwd());
-    structure.initEngineBuild(process.cwd(), PLATFORMS[platform], ARCHITECTURES[architecture]);
+    structure.initEngineBuild(process.cwd(), PLATFORMS[platform], ARCHITECTURES[architecture], release, name, bytecode);
 }
 
 const command: [string, string, (handler: SubCommandSet) => Generator<OptionSet | SubCommandSet>] = ["init", "Init a new engine in the CWD", init];

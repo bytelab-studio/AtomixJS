@@ -26,19 +26,21 @@ class Gateway {
     public readonly compiler: Compiler;
     public readonly platform: EnginePlatform;
     public readonly architecture: EngineArchitecture;
+    public readonly release: boolean;
 
     public get CC_BASE_FLAGS(): string[] {
         const ADDITIONAL_FLAGS: string[] = [];
-        if (this.platform == EnginePlatform.LINUX) {
-            // ADDITIONAL_FLAGS.push("-Wl,-T=\"" + path.join(ENGINE_BASE, "atomix.ld") + "\"");
+        if (this.release) {
+            ADDITIONAL_FLAGS.push("-O2", "-flto", "-s", "-DNDEBUG", "-fvisibility=hidden", "-Wl,--gc-sections", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables");
         }
 
         return CC_BASE_FLAGS.concat(ADDITIONAL_FLAGS);
     }
 
-    constructor(platform: EnginePlatform, architecture: EngineArchitecture) {
+    constructor(platform: EnginePlatform, architecture: EngineArchitecture, release: boolean) {
         this.platform = platform;
         this.architecture = architecture;
+        this.release = release;
         this.archiver = new Archiver(this);
         this.compiler = new Compiler(this);
     }
@@ -140,16 +142,18 @@ export class EngineBuilder {
     private readonly debug: boolean;
     private readonly objFolder: string;
     private readonly binFolder: string;
+    private readonly bcFolder: string;
 
     private constructor(dir: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[], debug: boolean) {
-        this.gateway = new Gateway(platform, architecture);
+        this.gateway = new Gateway(platform, architecture, !debug);
         this.modules = modules;
         this.debug = debug;
         this.objFolder = path.join(dir, ".atomix", "obj", debug ? "Debug" : "Release", generateRID(platform, architecture));
         this.binFolder = path.join(dir, ".atomix", "bin", debug ? "Debug" : "Release", generateRID(platform, architecture));
+        this.bcFolder = path.join(dir, ".atomix", "bc");
     }
 
-    public create(): void {
+    public create(name: string | null, bytecode: string | null): void {
         const includes: string[] = [
             this.compileGarbageCollector(),
             this.compileCore(),
@@ -160,12 +164,32 @@ export class EngineBuilder {
             "-Wl,--no-whole-archive"
         ];
 
-        if (!this.debug) {
-            includes.push(this.packBytecode());
+        if (this.debug) {
+            this.createDebug(includes);
+            return;
         }
 
+        if (!name || !bytecode) {
+            throw "Missing required arguments name or bytecode";
+        }
+
+        this.createRelease(includes, name, bytecode);
+    }
+
+    private createDebug(includes: string[]): void {
         const name: string = this.gateway.platform === EnginePlatform.WINDOWS ? "runner.exe" : "runner";
         const result: string = path.join(this.binFolder, name);
+        this.gateway.compiler.link(includes, result)
+    }
+
+    private createRelease(includes: string[], name: string, bytecode: string): void {
+        let result: string = path.join(this.binFolder, name);
+        if (this.gateway.platform == EnginePlatform.WINDOWS) {
+            result += ".exe";
+        }
+
+        includes.push(this.packBytecode(bytecode));
+
         this.gateway.compiler.link(includes, result)
     }
 
@@ -193,7 +217,7 @@ export class EngineBuilder {
 
         const inputFiles: string[] = this.readdirSync(path.join(ENGINE_BASE, "bdwgc")).filter(file => file.endsWith(".c"));
         const objectFiles: string[] = this.compileCFiles(inputFiles, base, ["-I", path.join(ENGINE_BASE, "bdwgc"), "-I", path.join(ENGINE_BASE, "bdwgc", "private"), "-DENABLE_THREADS=0", "-DGC_DISABLE_INCREMENTAL=1", "-DNO_INCREMENTAL=1", "-DNO_CLOCK=1", "-ULARGE_CONFIG", "-DSTATIC_LINK", "-DNO_GETCONTEXT", "-DNO_EXECUTE_PERMISSION", "-Wno-macro-redefined"]);
-        
+
         const result: string = path.join(this.objFolder, "libgc.a");
         this.gateway.archiver.archive(objectFiles, result, []);
         return result;
@@ -306,20 +330,36 @@ export class EngineBuilder {
         return objFiles;
     }
 
-    private packBytecode(): string {
-        throw "Not implemented";
+    private packBytecode(file: string): string {
+        file = path.join(this.bcFolder, file);
+        if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+            throw "Bytecode not found or is not a file";
+        }
+        const buff: string[] = Array.from(fs.readFileSync(file), x => "0x" + x.toString(16));
+        const output: string = path.join(this.objFolder, "bytecode.o");
+
+        this.gateway.compiler.compileFromInput(`
+        #include <stddef.h>
+        #include <stdint.h>
+
+        const uint8_t __BYTECODE__[] = {
+            ${buff.join(", ")}
+        };
+        const size_t __BYTECODE_SIZE__ = sizeof(__BYTECODE__);
+        `, output, []);
+        return output;
     }
 
     private readdirSync(folder: string): string[] {
         return fs.readdirSync(folder).map(file => path.join(folder, file));
     }
 
-    public static createEngine(dir: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[], debug: boolean) {
-        new EngineBuilder(dir, platform, architecture, modules, debug).create();
+    public static createEngine(dir: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[], debug: boolean, name: string | null, bytecode: string | null) {
+        new EngineBuilder(dir, platform, architecture, modules, debug).create(name, bytecode);
     }
 
     public static createCDF(output: string, platform: EnginePlatform, architecture: EngineArchitecture, modules: string[], debug: boolean) {
-        if (modules.length == 0) {
+        if (modules.length == 0 && debug) {
             modules = this.getAllModules();
         } else {
             const allModules: string[] = this.getAllModules();
