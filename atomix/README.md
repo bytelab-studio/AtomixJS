@@ -70,7 +70,11 @@ The executable can be found under `./.atomix/bin/Debug/<platform>-<arch>/runner(
 
 ### Build production suit (Currently not possible)
 
-With the current build-system not possible
+To build the project in release mode. First a JavaScript module or bundle must exist in the `.atomix/bc` folder. Then you can build the executable with the following command.
+
+```sh
+atomixc engine init -p <platform> -a <arch> -r -n myExecutable --bc myModule.bin
+```
 
 ### Compiling behavior
 
