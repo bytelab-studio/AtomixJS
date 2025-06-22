@@ -22,6 +22,7 @@ int value_is_falsy(JSValue* value)
         return 0;
     case JS_OBJECT:
     case JS_FUNC:
+    case JS_SYMBOL:
         return 0;
     case JS_UNDEFINED:
     case JS_NULL:
@@ -94,6 +95,8 @@ char* value_to_string(JSValue* value)
         return init_string("[Function]");
     case JS_STRING:
         return value->value.as_pointer;
+    case JS_SYMBOL:
+        return init_string("[Symbol]");
     }
 
     PANIC("Undefined JSValue Type");

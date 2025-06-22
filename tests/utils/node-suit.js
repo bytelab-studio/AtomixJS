@@ -36,6 +36,9 @@ globalThis.print = function (...args) {
                     process.stdout.write("false\n");
                 }
                 break;
+            case "symbol":
+                process.stdout.write("[Symbol]\n");
+                break;
         }
     }
 }

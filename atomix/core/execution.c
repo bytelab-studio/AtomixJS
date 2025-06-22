@@ -684,6 +684,8 @@ static void inst_typeof(VM* vm, void* ptr)
     case JS_BOOLEAN:
         vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_STRING(init_string("boolean"));
         return;
+    case JS_SYMBOL:
+        vm->stats.stack[vm->stats.stack_counter - 1] = JS_VALUE_SYMBOL(init_string("symbol"));
     }
     PANIC("Unknown operand type");
 }
@@ -1277,7 +1279,7 @@ static void inst_obj_cload(VM* vm, void* ptr)
     {
         PANIC("Stack underflow");
     }
-    JSValue value = vm->stats.stack[--vm->stats.stack_counter];
+    JSValue computed = vm->stats.stack[--vm->stats.stack_counter];
     JSValue obj = vm->stats.stack[vm->stats.stack_counter - 1];
     if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
     {
@@ -1286,7 +1288,14 @@ static void inst_obj_cload(VM* vm, void* ptr)
     JSObject* obj_ptr = obj.type == JS_FUNC
         ? ((JSFunction*)obj.value.as_pointer)->base
         : obj.value.as_pointer;
-    char* key = value_to_string(&value);
+    
+    if (computed.type == JS_SYMBOL)
+    {
+        vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property_by_symbol(obj_ptr, computed.value.as_pointer);
+        return;
+    }
+
+    char* key = value_to_string(&computed);
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
 }
 
@@ -1303,10 +1312,15 @@ static void inst_obj_cstore(VM* vm, void* ptr)
     {
         PANIC("Target is not a object");
     }
-    char* key = value_to_string(&computed);
     JSObject* obj_ptr = obj.type == JS_FUNC
         ? ((JSFunction*)obj.value.as_pointer)->base
         : (JSObject*)obj.value.as_pointer;
+    if (computed.type == JS_SYMBOL)
+    {
+        object_set_property_with_symbol(obj_ptr, computed.value.as_pointer, value);
+        return;
+    }
+    char* key = value_to_string(&computed);
     object_set_property(obj_ptr, key, value);
 }
 

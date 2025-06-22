@@ -15,6 +15,7 @@
 #define JS_VALUE_FUNCTION(func) ((JSValue){.type = JS_FUNC, .value.as_pointer = func})
 #define JS_VALUE_OBJECT(obj) ((JSValue){.type = JS_OBJECT, .value.as_pointer = obj})
 #define JS_VALUE_BOOL(state) ((JSValue){.type = JS_BOOLEAN, .value.as_int = state})
+#define JS_VALUE_SYMBOL(symbol) ((JSValue){.type = JS_SYMBOL, .value.as_pointer = symbol})
 
 typedef enum
 {
@@ -25,7 +26,8 @@ typedef enum
     JS_FUNC,
     JS_UNDEFINED,
     JS_NULL,
-    JS_BOOLEAN
+    JS_BOOLEAN,
+    JS_SYMBOL
 } JSValueType;
 
 typedef struct

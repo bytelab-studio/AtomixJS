@@ -59,6 +59,9 @@ JSValue print(VM* vm, JSValue this, JSValue* args, size_t argc)
         case JS_BOOLEAN:
             printf("%s\n", value.value.as_int ? "true" : "false");
             break;
+        case JS_SYMBOL:
+            printf("[Symbol]\n");
+            break;
         }
     }
 
@@ -242,6 +245,24 @@ JSValue call(VM* vm, JSValue this, JSValue* args, size_t argc) {
     return api_call_function(vm, function, args[0], args + 1, argc - 1);
 }
 
+JSValue symbol(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    JSObject* symbol = object_create_object(object_get_symbol_prototype());
+    if (argc > 0)
+    {
+        JSValue description = args[0];
+
+        if (description.type != JS_STRING)
+        {
+            description = JS_VALUE_STRING(value_to_string(&args[0]));
+        }
+
+        object_set_property(symbol, init_string("description"), description);
+    }
+
+    return JS_VALUE_SYMBOL(symbol);
+}
+
 void core_init(Scope* scope)
 {
     // Helper
@@ -290,4 +311,10 @@ void core_init(Scope* scope)
 
     JSFunction* _call = function_create_native_function(call);
     object_set_property(_function->base->prototype, init_string("call"), JS_VALUE_FUNCTION(_call));
+
+    // Symbol
+    JSFunction* _symbol = function_create_native_function(symbol);
+    _symbol->base->prototype = object_get_symbol_prototype();
+
+    scope_declare(scope, init_string("Symbol"), JS_VALUE_FUNCTION(_symbol));
 }

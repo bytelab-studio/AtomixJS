@@ -39,6 +39,12 @@ int dict_set(JSDict* dict, char* key, JSValue value, int update_only)
 
     while (entry)
     {
+        if (!entry->key)
+        {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
         {
             entry->value = value;
@@ -57,10 +63,43 @@ int dict_set(JSDict* dict, char* key, JSValue value, int update_only)
     {
         PANIC("Could not allocate memory");
     }
+    new_entry->symbol = NULL;
     new_entry->key = key;
     new_entry->value = value;
     new_entry->next = dict->buckets[index];
     dict->buckets[index] = new_entry;
+    return 1;
+}
+
+int dict_set_with_symbol(JSDict* dict, void* symbol, JSValue value, int update_only)
+{
+    JSProperty* entry = dict->buckets[0];
+
+    while(entry)
+    {
+        if (entry->symbol == symbol)
+        {
+            entry->value = value;
+            return 1;
+        }
+        entry = entry->next;
+    }
+
+    if (update_only)
+    {
+        return 0;
+    }
+
+    JSProperty* new_entry = GC_MALLOC(sizeof(JSProperty));
+    if (!new_entry)
+    {
+        PANIC("Could not allocate memory");
+    }
+    new_entry->symbol = symbol;
+    new_entry->key = NULL;
+    new_entry->value = value;
+    new_entry->next = dict->buckets[0];
+    dict->buckets[0] = new_entry;
     return 1;
 }
 
@@ -71,7 +110,30 @@ int dict_update(JSDict* dict, char* key, JSValue value)
 
     while (entry)
     {
+        if (!entry->key)
+        {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
+        {
+            entry->value = value;
+            return 1;
+        }
+        entry = entry->next;
+    }
+
+    return 0;
+}
+
+int dict_update_with_symbol(JSDict* dict, void* symbol, JSValue value)
+{
+    JSProperty* entry = dict->buckets[0];
+
+    while(entry)
+    {
+        if (entry->symbol == symbol)
         {
             entry->value = value;
             return 1;
@@ -89,7 +151,28 @@ JSValue* dict_get(JSDict* dict, char* key)
 
     while (entry)
     {
+        if (!entry->key) {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
+        {
+            return &entry->value;
+        }
+        entry = entry->next;
+    }
+
+    return NULL;
+}
+
+JSValue* dict_get_by_symbol(JSDict* dict, void* symbol)
+{
+    JSProperty* entry = dict->buckets[0];
+
+    while (entry)
+    {
+        if (entry->symbol == symbol)
         {
             return &entry->value;
         }
@@ -106,12 +189,19 @@ int dict_delete(JSDict* dict, char* key)
 
     while (entry)
     {
+        if (!entry->key)
+        {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
         {
             if (entry == dict->buckets[index])
             {
                 dict->buckets[index] = entry->next;
-            }else
+            }
+            else
             {
                 JSProperty* prev = dict->buckets[index]->next;
                 while (prev->next != entry)
@@ -122,7 +212,38 @@ int dict_delete(JSDict* dict, char* key)
             }
             return 1;
         }
+        entry = entry->next;
     }
+    
+    return 0;
+}
+
+int dict_delete_by_symbol(JSDict* dict, void* symbol)
+{
+    JSProperty* entry = dict->buckets[0];
+
+    while (entry)
+    {
+        if (entry->symbol == symbol)
+        {
+            if (entry == dict->buckets[0])
+            {
+                dict->buckets[0] = entry->next;
+            }
+            else
+            {
+                JSProperty* prev = dict->buckets[0]->next;
+                while (prev->next != entry)
+                {
+                    prev = prev->next;
+                }
+                prev->next = entry->next;
+            }
+            return 1;
+        }
+        entry = entry->next;
+    }
+
     return 0;
 }
 

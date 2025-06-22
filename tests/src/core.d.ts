@@ -86,6 +86,18 @@ declare global {
     }
 
     declare const Function: Function;
+
+    interface SymbolPrototype {
+        readonly prototype: ObjectPrototype;
+    }
+
+    interface Symbol {
+        (description?: string): Symbol;
+
+        new (description?: string): Symbol;
+
+        readonly prototype: SymbolPrototype;
+    }
 }
 
 export {}
