@@ -1,13 +1,15 @@
-#include "api.h"
+#include "api.impl.h"
 
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <gc.h>
 
-#include "function.h"
 #include "panic.h"
 #include "execution.h"
+
+#include "value.impl.h"
+#include "function.impl.h"
+#include "vm.impl.h"
+#include "format.impl.h"
 
 JSValue api_call_function(VM* vm, JSFunction* function, JSValue this, JSValue* args, size_t argc) {
     if (function->is_native) {

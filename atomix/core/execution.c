@@ -1,11 +1,16 @@
-#include "execution.h"
+#include "execution.impl.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 
 #include "panic.h"
 #include "api.h"
+
+#include "instruction.impl.h"
+#include "vm.impl.h"
+#include "format.impl.h"
+#include "function.impl.h"
+#include "scope.impl.h"
 
 static void inst_nop(VM* vm, void* ptr)
 {

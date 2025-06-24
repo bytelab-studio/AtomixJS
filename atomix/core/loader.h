@@ -1,12 +1,11 @@
 #ifndef LOADER_H
 #define LOADER_H
 
+#include <inttypes.h>
+
 #include "format.h"
 
-typedef enum {
-    LOAD_BUNDLE,
-    LOAD_MODULE
-} LoadResult;
+typedef enum LoadResult LoadResult;
 
 void module_load_from_file(const char* filename, JSModule* module);
 

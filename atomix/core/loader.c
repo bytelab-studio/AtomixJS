@@ -1,13 +1,15 @@
-#include "loader.h"
+#include "loader.impl.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gc.h>
 
-#include "instruction.h"
 #include "panic.h"
 #include "scope.h"
+
+#include "format.impl.h"
+#include "instruction.impl.h"
 
 #define EXPORT_BUCKET_SIZE 16
 

@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <gc.h>
 
-#include "loader.h"
-#include "format.h"
-#include "execution.h"
+#include "AtomixJS.h"
+
+#include "loader.impl.h"
+#include "format.impl.h"
+#include "vm.impl.h"
 
 static JSModule _module;
 static JSBundle _bundle;
