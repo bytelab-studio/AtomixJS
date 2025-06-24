@@ -196,7 +196,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-        
+
+      - name: Install 7-Zip
+        run: choco install 7zip
+
       - name: Download engine artifact
         uses: actions/download-artifact@v4
         with:
@@ -206,7 +209,7 @@ jobs:
       - name: Extract engine
         run: |
           mkdir build
-          powershell -Command "Expand-Archive -Path atomix-windows-${{ matrix.arch }}.zip -DestinationPath build"
+          7z x "atomix-windows-${{ matrix.arch }}.zip" -obuild
 
       - name: Init engine
         run: |
