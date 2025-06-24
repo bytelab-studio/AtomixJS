@@ -5,19 +5,7 @@
 
 #include "value.h"
 
-
-typedef struct JSProperty
-{
-    char* key;
-    JSValue value;
-    struct JSProperty* next;
-} JSProperty;
-
-typedef struct
-{
-    JSProperty** buckets;
-    size_t bucket_count;
-} JSDict;
+typedef struct JSDict JSDict;
 
 JSDict* dict_create_dict(size_t bucket_count);
 

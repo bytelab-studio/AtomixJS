@@ -1,4 +1,4 @@
-#include "format.h"
+#include "format.impl.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +6,7 @@
 #include <gc.h>
 
 #include "panic.h"
-#include "api.h"
+#include "api.impl.h"
 
 char* string_table_load_str(StringTable* table, uint32_t idx)
 {
