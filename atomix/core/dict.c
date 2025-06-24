@@ -115,7 +115,6 @@ JSValue* dict_get_by_symbol(JSDict* dict, void* symbol)
 
 void dict_add(JSDict* dict, char* key, JSValue value) {
     size_t index = hash_string(key, dict->bucket_count);
-    JSProperty* entry = dict->buckets[index];
 
     JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
     if (!new_entry)
