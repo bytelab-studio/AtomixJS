@@ -12,6 +12,11 @@ typedef JSValue (*JSNativeFunction)(VM* vm, JSValue this, JSValue* args, size_t 
 
 typedef struct JSFunction JSFunction;
 
+typedef struct {
+    JSFunction* getter;
+    JSFunction* setter;
+} JSGSBox;
+
 JSFunction* function_create_native_function(JSNativeFunction function_ptr);
 
 JSFunction* function_create_function(Scope* parentScope, JSModule* module, size_t instruction_start, size_t instruction_end);

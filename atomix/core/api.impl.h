@@ -2,6 +2,7 @@
 #define API_IMPL_H
 
 #include "api.h"
+#include "vm.h"
 
 typedef struct NativeModuleList {
     struct NativeModuleList* next;
@@ -10,6 +11,6 @@ typedef struct NativeModuleList {
 
 extern NativeModuleList* native_modules;
 
-typedef void (*module_init)(Scope*);
+typedef void (*module_init)(VM* vm, Scope*);
 
 #endif //API_IMPL_H

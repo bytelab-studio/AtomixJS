@@ -11,7 +11,7 @@
 
 JSValue api_call_function(VM* vm, JSFunction* function, JSValue this, JSValue* args, size_t argc);
 
-void bind_modules(Scope* scope);
+void bind_modules(VM* vm, Scope* scope);
 
 char* init_string(char* str);
 

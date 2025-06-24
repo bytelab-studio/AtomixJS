@@ -8,6 +8,7 @@
 typedef struct JSProperty
 {
     char* key;
+    void* symbol;
     JSValue value;
     struct JSProperty* next;
 } JSProperty;

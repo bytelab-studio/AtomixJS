@@ -5,7 +5,9 @@
 #include <string.h>
 #include <gc.h>
 
+#include "function.h"
 #include "panic.h"
+#include "api.h"
 
 #define HASH_SEED 5381
 
@@ -32,13 +34,19 @@ JSDict* dict_create_dict(size_t bucket_count)
     return dict;
 }
 
-int dict_set(JSDict* dict, char* key, JSValue value, int update_only)
+int dict_update(JSDict* dict, char* key, JSValue value)
 {
     size_t index = hash_string(key, dict->bucket_count);
     JSProperty* entry = dict->buckets[index];
 
     while (entry)
     {
+        if (!entry->key)
+        {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
         {
             entry->value = value;
@@ -47,31 +55,16 @@ int dict_set(JSDict* dict, char* key, JSValue value, int update_only)
         entry = entry->next;
     }
 
-    if (update_only)
-    {
-        return 0;
-    }
-
-    JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
-    if (!new_entry)
-    {
-        PANIC("Could not allocate memory");
-    }
-    new_entry->key = key;
-    new_entry->value = value;
-    new_entry->next = dict->buckets[index];
-    dict->buckets[index] = new_entry;
-    return 1;
+    return 0;
 }
 
-int dict_update(JSDict* dict, char* key, JSValue value)
+int dict_update_with_symbol(JSDict* dict, void* symbol, JSValue value)
 {
-    size_t index = hash_string(key, dict->bucket_count);
-    JSProperty* entry = dict->buckets[index];
+    JSProperty* entry = dict->buckets[0];
 
-    while (entry)
+    while(entry)
     {
-        if (strcmp(key, entry->key) == 0)
+        if (entry->symbol == symbol)
         {
             entry->value = value;
             return 1;
@@ -89,6 +82,11 @@ JSValue* dict_get(JSDict* dict, char* key)
 
     while (entry)
     {
+        if (!entry->key) {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
         {
             return &entry->value;
@@ -99,6 +97,50 @@ JSValue* dict_get(JSDict* dict, char* key)
     return NULL;
 }
 
+JSValue* dict_get_by_symbol(JSDict* dict, void* symbol)
+{
+    JSProperty* entry = dict->buckets[0];
+
+    while (entry)
+    {
+        if (entry->symbol == symbol)
+        {
+            return &entry->value;
+        }
+        entry = entry->next;
+    }
+
+    return NULL;
+}
+
+void dict_add(JSDict* dict, char* key, JSValue value) {
+    size_t index = hash_string(key, dict->bucket_count);
+
+    JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
+    if (!new_entry)
+    {
+        PANIC("Could not allocate memory");
+    }
+    new_entry->key = key;
+    new_entry->value = value;
+    new_entry->next = dict->buckets[index];
+    dict->buckets[index] = new_entry;
+}
+
+void dict_add_with_symbol(JSDict* dict, void* symbol, JSValue value) {
+    JSProperty* new_entry = GC_MALLOC(sizeof(JSProperty));
+    if (!new_entry)
+    {
+        PANIC("Could not allocate memory");
+    }
+    new_entry->symbol = symbol;
+    new_entry->key = NULL;
+    new_entry->value = value;
+    new_entry->next = dict->buckets[0];
+    dict->buckets[0] = new_entry;
+
+}
+
 int dict_delete(JSDict* dict, char* key)
 {
     size_t index = hash_string(key, dict->bucket_count);
@@ -106,12 +148,19 @@ int dict_delete(JSDict* dict, char* key)
 
     while (entry)
     {
+        if (!entry->key)
+        {
+            entry = entry->next;
+            continue;
+        }
+
         if (strcmp(key, entry->key) == 0)
         {
             if (entry == dict->buckets[index])
             {
                 dict->buckets[index] = entry->next;
-            }else
+            }
+            else
             {
                 JSProperty* prev = dict->buckets[index]->next;
                 while (prev->next != entry)
@@ -122,7 +171,38 @@ int dict_delete(JSDict* dict, char* key)
             }
             return 1;
         }
+        entry = entry->next;
     }
+    
+    return 0;
+}
+
+int dict_delete_by_symbol(JSDict* dict, void* symbol)
+{
+    JSProperty* entry = dict->buckets[0];
+
+    while (entry)
+    {
+        if (entry->symbol == symbol)
+        {
+            if (entry == dict->buckets[0])
+            {
+                dict->buckets[0] = entry->next;
+            }
+            else
+            {
+                JSProperty* prev = dict->buckets[0]->next;
+                while (prev->next != entry)
+                {
+                    prev = prev->next;
+                }
+                prev->next = entry->next;
+            }
+            return 1;
+        }
+        entry = entry->next;
+    }
+
     return 0;
 }
 
