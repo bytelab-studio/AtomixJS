@@ -33,9 +33,9 @@ JSValue api_call_function(VM* vm, JSFunction* function, JSValue this, JSValue* a
 extern const module_init __MOD_LOADER__[];
 extern const size_t __MOD_LOADER_SIZE__;
 
-void bind_modules(Scope* scope) {
+void bind_modules(VM* vm, Scope* scope) {
     for (size_t i = 0; i < __MOD_LOADER_SIZE__; i++) {
-        (__MOD_LOADER__[i])(scope);
+        (__MOD_LOADER__[i])(vm, scope);
     }
 }
 

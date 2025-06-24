@@ -3,6 +3,8 @@
 #include <string.h>
 #include <gc.h>
 
+#include "api.h"
+
 #define OBJECT_BUCKET_SIZE 16
 
 JSObject* object_create_object(JSObject* prototype)
@@ -13,43 +15,103 @@ JSObject* object_create_object(JSObject* prototype)
     return obj;
 }
 
-void object_set_property(JSObject* obj, char* key, JSValue value)
+void object_set_property(VM* vm, JSObject* obj, char* key, JSValue value)
 {
-    dict_set(obj->properties, key, value, 0);
+    JSValue* prop = dict_get(obj->properties, key);
+    if (prop)
+    {
+        if (prop->type == JS_GS_BOX)
+        {
+            JSGSBox* box = prop->value.as_pointer;
+            if (!box->setter)
+            {
+                // TODO throw exception
+                PANIC("Property contains no setter");
+            }
+            api_call_function(vm, box->setter, JS_VALUE_OBJECT(obj), &value, 1);
+            return;
+        }
+        *prop = value;
+        return;
+    }
+
+    dict_add(obj->properties, key, value);
 }
 
-void object_set_property_with_symbol(JSObject* obj, void* symbol, JSValue value)
+void object_set_property_with_symbol(VM* vm, JSObject* obj, void* symbol, JSValue value)
 {
-    dict_set_with_symbol(obj->properties, symbol, value, 0);
+    JSValue* prop = dict_get_by_symbol(obj->properties, symbol);
+    if (prop)
+    {
+        if (prop->type == JS_GS_BOX)
+        {
+            JSGSBox* box = prop->value.as_pointer;
+            if (!box->setter)
+            {
+                // TODO throw exception
+                PANIC("Property contains no setter");
+            }
+            api_call_function(vm, box->setter, JS_VALUE_OBJECT(obj), &value, 1);
+            return;
+        }
+        *prop = value;
+        return;
+    }
+
+    dict_add_with_symbol(obj->properties, symbol, value);
 }
 
-JSValue object_get_property(JSObject* obj, char* key)
+JSValue object_get_property(VM* vm, JSObject* obj, char* key)
 {
     JSValue* value = dict_get(obj->properties, key);
     
     if (value)
     {
+        if (value->type == JS_GS_BOX)
+        {
+            JSGSBox* box = value->value.as_pointer;
+            if (!box->getter)
+            {
+                // TODO throw exception
+                PANIC("Property contains no getter");
+            }
+
+            return api_call_function(vm, box->getter, JS_VALUE_OBJECT(obj), NULL, 0);
+        }
+
         return *value;
     }
     if (obj->prototype && obj->prototype != obj)
     {
-        return object_get_property(obj->prototype, key);
+        return object_get_property(vm, obj->prototype, key);
     }
 
     return JS_VALUE_UNDEFINED;
 }
 
-JSValue object_get_property_by_symbol(JSObject* obj, void* symbol)
+JSValue object_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol)
 {
     JSValue* value = dict_get_by_symbol(obj->properties, symbol);
 
     if (value)
     {
+        if (value->type == JS_GS_BOX)
+        {
+            JSGSBox* box = value->value.as_pointer;
+            if (!box->getter)
+            {
+                // TODO throw exception
+                PANIC("Property contains no getter");
+            }
+
+            return api_call_function(vm, box->getter, JS_VALUE_OBJECT(obj), NULL, 0);
+        }
+
         return *value;
     }
     if (obj->prototype && obj->prototype != obj)
     {
-        return object_get_property_by_symbol(obj->prototype, symbol);
+        return object_get_property_by_symbol(vm, obj->prototype, symbol);
     }
 
     return JS_VALUE_UNDEFINED;

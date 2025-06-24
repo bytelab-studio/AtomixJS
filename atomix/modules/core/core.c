@@ -119,7 +119,7 @@ JSValue instantiate(VM* vm, JSValue this, JSValue* args, size_t argc)
     }
     JSFunction* constructor = constructor_wrapped.value.as_pointer;
 
-    JSValue prototype_wrapped = object_get_property(constructor->base, "prototype");
+    JSValue prototype_wrapped = object_get_property(vm, constructor->base, "prototype");
     if (prototype_wrapped.type != JS_OBJECT)
     {
         // TODO throw exception
@@ -193,25 +193,25 @@ JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
         if (length.type == JS_INTEGER)
         {
             int size = length.value.as_int;
-            object_set_property(arr, init_string("length"), length);
+            object_set_property(vm, arr, init_string("length"), length);
             JSValue value;
             for (int i = 0; i < size; i++)
             {
                 value = JS_VALUE_INT(i);
                 char* key = value_to_string(&value);
-                object_set_property(arr, key, JS_VALUE_UNDEFINED);
+                object_set_property(vm, arr, key, JS_VALUE_UNDEFINED);
             }
             return JS_VALUE_OBJECT(arr);
         }
     }
 
-    object_set_property(arr, init_string("length"), JS_VALUE_INT(argc));
+    object_set_property(vm, arr, init_string("length"), JS_VALUE_INT(argc));
     JSValue value;
     for (int i = 0; i < argc; i++)
     {
         value = JS_VALUE_INT(i);
         char* key = value_to_string(&value);
-        object_set_property(arr, key, args[i]);
+        object_set_property(vm, arr, key, args[i]);
     }
     return JS_VALUE_OBJECT(arr);
 }
@@ -257,13 +257,13 @@ JSValue symbol(VM* vm, JSValue this, JSValue* args, size_t argc)
             description = JS_VALUE_STRING(value_to_string(&args[0]));
         }
 
-        object_set_property(symbol, init_string("description"), description);
+        object_set_property(vm, symbol, init_string("description"), description);
     }
 
     return JS_VALUE_SYMBOL(symbol);
 }
 
-void core_init(Scope* scope)
+void core_init(VM* vm, Scope* scope)
 {
     // Helper
     JSFunction* _print = function_create_native_function(print);
@@ -273,10 +273,10 @@ void core_init(Scope* scope)
     JSObject* _module = object_create_object(object_get_object_prototype());
 
     JSFunction* _module_get_export_obj = function_create_native_function(module_get_export_obj);
-    object_set_property(_module, init_string("getExportObj"), JS_VALUE_FUNCTION(_module_get_export_obj));
+    object_set_property(vm, _module, init_string("getExportObj"), JS_VALUE_FUNCTION(_module_get_export_obj));
 
     JSFunction* _module_import_module = function_create_native_function(module_import_module);
-    object_set_property(_module, init_string("importModule"), JS_VALUE_FUNCTION(_module_import_module));
+    object_set_property(vm, _module, init_string("importModule"), JS_VALUE_FUNCTION(_module_import_module));
 
     scope_declare(scope, init_string("Module"), JS_VALUE_OBJECT(_module));
 
@@ -284,13 +284,13 @@ void core_init(Scope* scope)
     JSFunction* _object = function_create_native_function(object);
 
     JSFunction* _instantiate = function_create_native_function(instantiate);
-    object_set_property(_object->base, init_string("instantiate"), JS_VALUE_FUNCTION(_instantiate));
+    object_set_property(vm, _object->base, init_string("instantiate"), JS_VALUE_FUNCTION(_instantiate));
 
     JSFunction* _create = function_create_native_function(create);
-    object_set_property(_object->base, init_string("create"), JS_VALUE_FUNCTION(_create));
+    object_set_property(vm, _object->base, init_string("create"), JS_VALUE_FUNCTION(_create));
 
     JSFunction* _setPrototypeOf = function_create_native_function(setPrototypeOf);
-    object_set_property(_object->base, init_string("setPrototypeOf"), JS_VALUE_FUNCTION(_setPrototypeOf));
+    object_set_property(vm, _object->base, init_string("setPrototypeOf"), JS_VALUE_FUNCTION(_setPrototypeOf));
 
     scope_declare(scope, init_string("Object"), JS_VALUE_FUNCTION(_object));
 
@@ -299,7 +299,7 @@ void core_init(Scope* scope)
     _array->base->prototype = object_get_array_prototype();
 
     JSFunction* _is_array = function_create_native_function(is_array);
-    object_set_property(_array->base, init_string("isArray"), JS_VALUE_FUNCTION(_is_array));
+    object_set_property(vm, _array->base, init_string("isArray"), JS_VALUE_FUNCTION(_is_array));
 
     scope_declare(scope, init_string("Array"), JS_VALUE_FUNCTION(_array));
 
@@ -310,7 +310,7 @@ void core_init(Scope* scope)
     scope_declare(scope, init_string("Function"), JS_VALUE_FUNCTION(_function));
 
     JSFunction* _call = function_create_native_function(call);
-    object_set_property(_function->base->prototype, init_string("call"), JS_VALUE_FUNCTION(_call));
+    object_set_property(vm, _function->base->prototype, init_string("call"), JS_VALUE_FUNCTION(_call));
 
     // Symbol
     JSFunction* _symbol = function_create_native_function(symbol);

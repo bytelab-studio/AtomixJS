@@ -1251,7 +1251,7 @@ static void inst_obj_store(VM* vm, void* ptr)
     JSObject* obj_ptr = obj.type == JS_FUNC
         ? ((JSFunction*)obj.value.as_pointer)->base
         : (JSObject*)obj.value.as_pointer;
-    object_set_property(obj_ptr, key, value);
+    object_set_property(vm, obj_ptr, key, value);
 }
 
 static void inst_obj_load(VM* vm, void* ptr)
@@ -1270,7 +1270,7 @@ static void inst_obj_load(VM* vm, void* ptr)
     JSObject* obj_ptr = obj.type == JS_FUNC
         ? ((JSFunction*)obj.value.as_pointer)->base
         : (JSObject*)obj.value.as_pointer;
-    vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
+    vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(vm, obj_ptr, key);
 }
 
 static void inst_obj_cload(VM* vm, void* ptr)
@@ -1291,12 +1291,12 @@ static void inst_obj_cload(VM* vm, void* ptr)
     
     if (computed.type == JS_SYMBOL)
     {
-        vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property_by_symbol(obj_ptr, computed.value.as_pointer);
+        vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property_by_symbol(vm, obj_ptr, computed.value.as_pointer);
         return;
     }
 
     char* key = value_to_string(&computed);
-    vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(obj_ptr, key);
+    vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(vm, obj_ptr, key);
 }
 
 static void inst_obj_cstore(VM* vm, void* ptr)
@@ -1317,11 +1317,11 @@ static void inst_obj_cstore(VM* vm, void* ptr)
         : (JSObject*)obj.value.as_pointer;
     if (computed.type == JS_SYMBOL)
     {
-        object_set_property_with_symbol(obj_ptr, computed.value.as_pointer, value);
+        object_set_property_with_symbol(vm, obj_ptr, computed.value.as_pointer, value);
         return;
     }
     char* key = value_to_string(&computed);
-    object_set_property(obj_ptr, key, value);
+    object_set_property(vm, obj_ptr, key, value);
 }
 
 static void inst_push_scope(VM* vm, void* ptr)
@@ -1375,7 +1375,7 @@ static void inst_export(VM* vm, void* ptr)
 
     JSValue value = vm->stats.stack[--vm->stats.stack_counter];
     char* key = string_table_load_str(&vm->module->string_table, inst->operand);
-    object_set_property(vm->module->exports, key, value);
+    object_set_property(vm, vm->module->exports, key, value);
 }
 
 VM vm_init(JSModule* module)
@@ -1441,7 +1441,7 @@ VM vm_init(JSModule* module)
     vm.inst_set[OP_JMP_T] = inst_jmp_t;
     vm.inst_set[OP_EXPORT] = inst_export;
 
-    bind_modules(vm.globalScope);
+    bind_modules(&vm, vm.globalScope);
 
     return vm;
 }

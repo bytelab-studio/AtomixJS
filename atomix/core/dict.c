@@ -5,7 +5,9 @@
 #include <string.h>
 #include <gc.h>
 
+#include "function.h"
 #include "panic.h"
+#include "api.h"
 
 #define HASH_SEED 5381
 
@@ -30,77 +32,6 @@ JSDict* dict_create_dict(size_t bucket_count)
     dict->buckets = GC_malloc(bucket_count * sizeof(JSProperty*));
     dict->bucket_count = bucket_count;
     return dict;
-}
-
-int dict_set(JSDict* dict, char* key, JSValue value, int update_only)
-{
-    size_t index = hash_string(key, dict->bucket_count);
-    JSProperty* entry = dict->buckets[index];
-
-    while (entry)
-    {
-        if (!entry->key)
-        {
-            entry = entry->next;
-            continue;
-        }
-
-        if (strcmp(key, entry->key) == 0)
-        {
-            entry->value = value;
-            return 1;
-        }
-        entry = entry->next;
-    }
-
-    if (update_only)
-    {
-        return 0;
-    }
-
-    JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
-    if (!new_entry)
-    {
-        PANIC("Could not allocate memory");
-    }
-    new_entry->symbol = NULL;
-    new_entry->key = key;
-    new_entry->value = value;
-    new_entry->next = dict->buckets[index];
-    dict->buckets[index] = new_entry;
-    return 1;
-}
-
-int dict_set_with_symbol(JSDict* dict, void* symbol, JSValue value, int update_only)
-{
-    JSProperty* entry = dict->buckets[0];
-
-    while(entry)
-    {
-        if (entry->symbol == symbol)
-        {
-            entry->value = value;
-            return 1;
-        }
-        entry = entry->next;
-    }
-
-    if (update_only)
-    {
-        return 0;
-    }
-
-    JSProperty* new_entry = GC_MALLOC(sizeof(JSProperty));
-    if (!new_entry)
-    {
-        PANIC("Could not allocate memory");
-    }
-    new_entry->symbol = symbol;
-    new_entry->key = NULL;
-    new_entry->value = value;
-    new_entry->next = dict->buckets[0];
-    dict->buckets[0] = new_entry;
-    return 1;
 }
 
 int dict_update(JSDict* dict, char* key, JSValue value)
@@ -180,6 +111,35 @@ JSValue* dict_get_by_symbol(JSDict* dict, void* symbol)
     }
 
     return NULL;
+}
+
+void dict_add(JSDict* dict, char* key, JSValue value) {
+    size_t index = hash_string(key, dict->bucket_count);
+    JSProperty* entry = dict->buckets[index];
+
+    JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
+    if (!new_entry)
+    {
+        PANIC("Could not allocate memory");
+    }
+    new_entry->key = key;
+    new_entry->value = value;
+    new_entry->next = dict->buckets[index];
+    dict->buckets[index] = new_entry;
+}
+
+void dict_add_with_symbol(JSDict* dict, void* symbol, JSValue value) {
+    JSProperty* new_entry = GC_MALLOC(sizeof(JSProperty));
+    if (!new_entry)
+    {
+        PANIC("Could not allocate memory");
+    }
+    new_entry->symbol = symbol;
+    new_entry->key = NULL;
+    new_entry->value = value;
+    new_entry->next = dict->buckets[0];
+    dict->buckets[0] = new_entry;
+
 }
 
 int dict_delete(JSDict* dict, char* key)

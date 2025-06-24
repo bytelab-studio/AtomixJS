@@ -27,7 +27,8 @@ typedef enum
     JS_UNDEFINED,
     JS_NULL,
     JS_BOOLEAN,
-    JS_SYMBOL
+    JS_SYMBOL,
+    JS_GS_BOX
 } JSValueType;
 
 typedef struct
@@ -41,7 +42,6 @@ typedef struct
         void* as_pointer;
     } value;
 } JSValue;
-
 
 int value_is_falsy(JSValue* value);
 

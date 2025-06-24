@@ -287,7 +287,7 @@ export class EngineBuilder {
         this.gateway.compiler.compileFromInput(`
         #include <stddef.h>
 
-        ${loaders.map(loader => `extern void ${loader}(void*);`).join('\n')}
+        ${loaders.map(loader => `extern void ${loader}(void*, void*);`).join('\n')}
 
         const void* __MOD_LOADER__[] = {
             ${loaders.map(loader => `(const void*)${loader}`).join(",\n    ")}

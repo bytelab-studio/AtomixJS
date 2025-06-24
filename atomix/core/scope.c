@@ -14,8 +14,10 @@ Scope* scope_create_scope(Scope* parent)
 
 int scope_set(const Scope* scope, char* key, JSValue value)
 {
-    if (dict_set(scope->symbols, key, value, 1))
+    JSValue* prop = dict_get(scope->symbols, key);
+    if (prop)
     {
+        *prop = value;
         return 1;
     }
 
@@ -29,7 +31,14 @@ int scope_set(const Scope* scope, char* key, JSValue value)
 
 void scope_declare(const Scope* scope, char* key, JSValue value)
 {
-    dict_set(scope->symbols, key, value, 0);
+    JSValue* prop = dict_get(scope->symbols, key);
+    if (prop)
+    {
+        *prop = value;
+        return;
+    }
+    
+    dict_add(scope->symbols, key, value);
 }
 
 JSValue scope_get(const Scope* scope, char* key)
