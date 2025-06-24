@@ -1,36 +1,51 @@
-#ifndef MODULE_H
-#define MODULE_H
+#ifndef FORMAT_IMPL_H
+#define FORMAT_IMPL_H
 
-#include "dict.h"
+#include "format.h"
+
 #include "object.h"
 #include "scope.h"
 
+#define MODULE_MAGIC0 0x2E
+#define MODULE_MAGIC1 0x41
+#define MODULE_MAGIC2 0x78
+#define MODULE_MAGIC3 0x4D
+
+#define MODULE_VERSION 2
+
+#define BUNDLE_MAGIC0 0x2E
+#define BUNDLE_MAGIC1 0x41
+#define BUNDLE_MAGIC2 0x78
+#define BUNDLE_MAGIC3 0x42
+
+#define BUNDLE_VERSION 1
+
 struct JSModule;
 
-typedef struct {
+struct JSBundle {
     char magic[4];
     uint16_t version;
     uint64_t entryPoint;
     uint16_t moduleCount;
     struct JSModule* modules;
-} JSBundle;
+};
 
-typedef struct
+struct StringTable
 {
     uint32_t length;
     uint32_t count;
     uint32_t* offsets;
     char* strings;
-} StringTable;
+};
 
-typedef struct
+struct DataSection
 {
     uint32_t length;
     uint32_t count;
     void** instructions;
-} DataSection;
+};
 
-typedef struct JSModule
+struct JSModule
 {
     JSBundle* bundle;
 
@@ -48,6 +63,6 @@ typedef struct JSModule
     int initialized;
     JSObject* exports;
     Scope* scope;
-} JSModule;
+};
 
-#endif //MODULE_H
+#endif //FORMAT_IMPL_H

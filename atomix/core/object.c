@@ -1,9 +1,12 @@
-#include "object.h"
+#include "object.impl.h"
 
 #include <string.h>
 #include <gc.h>
 
 #include "api.h"
+#include "panic.h"
+
+#include "value.impl.h"
 
 #define OBJECT_BUCKET_SIZE 16
 

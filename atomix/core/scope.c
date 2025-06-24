@@ -1,6 +1,8 @@
-#include "scope.h"
+#include "scope.impl.h"
 
 #include <gc.h>
+
+#include "value.impl.h"
 
 #define SCOPE_BUCKET_SIZE 32
 

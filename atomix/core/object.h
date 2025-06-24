@@ -1,14 +1,10 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "dict.h"
 #include "vm.h"
+#include "value.h"
 
-typedef struct JSObject
-{
-    struct JSObject* prototype;
-    JSDict* properties;
-} JSObject;
+typedef struct JSObject JSObject;
 
 JSObject* object_create_object(JSObject* prototype);
 

@@ -1,4 +1,4 @@
-#include "value.h"
+#include "value.impl.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +6,8 @@
 
 #include "panic.h"
 #include "api.h"
-#include "object.h"
+
+#include "object.impl.h"
 
 int value_is_falsy(JSValue* value)
 {

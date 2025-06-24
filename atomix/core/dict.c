@@ -1,7 +1,7 @@
-#include "dict.h"
+#include "dict.impl.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include <gc.h>
 

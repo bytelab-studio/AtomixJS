@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <wchar.h>
 
-#include "api.h"
-#include "panic.h"
-#include "execution.h"
-#include "function.h"
+#include "AtomixJS.h"
+
+#include "vm.impl.h"
+#include "value.impl.h"
+#include "format.impl.h"
+#include "function.impl.h"
+#include "object.impl.h"
 
 JSValue print(VM* vm, JSValue this, JSValue* args, size_t argc)
 {

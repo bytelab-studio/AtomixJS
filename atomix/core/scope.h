@@ -1,13 +1,9 @@
 #ifndef SCOPE_H
 #define SCOPE_H
 
-#include "dict.h"
+#include "value.h"
 
-typedef struct Scope
-{
-    struct Scope* parent;
-    JSDict* symbols;
-} Scope;
+typedef struct Scope Scope;
 
 Scope* scope_create_scope(Scope* parent);
 

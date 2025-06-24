@@ -1,7 +1,10 @@
+#include "function.impl.h"
+
 #include <gc.h>
 
-#include "function.h"
 #include "api.h"
+
+#include "value.impl.h"
 
 JSFunction* function_create_native_function(JSNativeFunction function_ptr)
 {
