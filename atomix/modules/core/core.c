@@ -319,5 +319,7 @@ void core_init(VM* vm, Scope* scope)
     JSFunction* _symbol = function_create_native_function(symbol);
     _symbol->base->prototype = object_get_symbol_prototype();
 
+    object_set_property(vm, _symbol->base, init_string("toPrimitive"), symbol_to_primitive(vm));
+
     scope_declare(scope, init_string("Symbol"), JS_VALUE_FUNCTION(_symbol));
 }

@@ -11,6 +11,7 @@
 #include "object.h"
 #include "panic.h"
 #include "scope.h"
+#include "symbol.h"
 #include "value.h"
 #include "vm.h"
 
