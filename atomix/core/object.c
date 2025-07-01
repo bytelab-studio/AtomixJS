@@ -1,8 +1,8 @@
 #include "object.impl.h"
 
 #include <string.h>
-#include <gc.h>
 
+#include "gc.h"
 #include "api.h"
 #include "panic.h"
 
@@ -12,7 +12,7 @@
 
 JSObject* object_create_object(JSObject* prototype)
 {
-    JSObject* obj = GC_malloc(sizeof(JSObject));
+    JSObject* obj = gc_malloc(sizeof(JSObject));
     obj->prototype = prototype;
     obj->properties = dict_create_dict(OBJECT_BUCKET_SIZE);
     return obj;

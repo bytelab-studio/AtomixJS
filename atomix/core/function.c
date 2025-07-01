@@ -1,14 +1,13 @@
 #include "function.impl.h"
 
-#include <gc.h>
-
+#include "gc.h"
 #include "api.h"
 
 #include "value.impl.h"
 
 JSFunction* function_create_native_function(JSNativeFunction function_ptr)
 {
-    JSFunction* function = GC_malloc(sizeof(JSFunction));
+    JSFunction* function = gc_malloc(sizeof(JSFunction));
     function->is_native = 1;
     function->native_function = function_ptr;
     function->base = object_create_object(object_get_object_prototype());
@@ -27,7 +26,7 @@ JSFunction* function_create_function(
     size_t instruction_end)
 {
     // TODO add name to constructor
-    JSFunction* function = GC_malloc(sizeof(JSFunction));
+    JSFunction* function = gc_malloc(sizeof(JSFunction));
     function->is_native = 0;
     function->meta.instruction_start = instruction_start;
     function->meta.instruction_end = instruction_end;

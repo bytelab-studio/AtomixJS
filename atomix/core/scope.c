@@ -1,14 +1,13 @@
 #include "scope.impl.h"
 
-#include <gc.h>
-
+#include "gc.h"
 #include "value.impl.h"
 
 #define SCOPE_BUCKET_SIZE 32
 
 Scope* scope_create_scope(Scope* parent)
 {
-    Scope* scope = GC_malloc(sizeof(Scope));
+    Scope* scope = gc_malloc(sizeof(Scope));
     scope->parent = parent;
     scope->symbols = dict_create_dict(SCOPE_BUCKET_SIZE);
     return scope;

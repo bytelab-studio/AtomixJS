@@ -3,8 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <gc.h>
 
+#include "gc.h"
 #include "function.h"
 #include "panic.h"
 #include "api.h"
@@ -24,12 +24,12 @@ static uint32_t hash_string(const char* str, size_t bucket_count)
 
 JSDict* dict_create_dict(size_t bucket_count)
 {
-    JSDict* dict = GC_malloc(sizeof(JSDict));
+    JSDict* dict = gc_malloc(sizeof(JSDict));
     if (!dict)
     {
         PANIC("Could not allocate memory");
     }
-    dict->buckets = GC_malloc(bucket_count * sizeof(JSProperty*));
+    dict->buckets = gc_malloc(bucket_count * sizeof(JSProperty*));
     dict->bucket_count = bucket_count;
     return dict;
 }
@@ -116,7 +116,7 @@ JSValue* dict_get_by_symbol(JSDict* dict, void* symbol)
 void dict_add(JSDict* dict, char* key, JSValue value) {
     size_t index = hash_string(key, dict->bucket_count);
 
-    JSProperty* new_entry = GC_malloc(sizeof(JSProperty));
+    JSProperty* new_entry = gc_malloc(sizeof(JSProperty));
     if (!new_entry)
     {
         PANIC("Could not allocate memory");
@@ -128,7 +128,7 @@ void dict_add(JSDict* dict, char* key, JSValue value) {
 }
 
 void dict_add_with_symbol(JSDict* dict, void* symbol, JSValue value) {
-    JSProperty* new_entry = GC_MALLOC(sizeof(JSProperty));
+    JSProperty* new_entry = gc_malloc(sizeof(JSProperty));
     if (!new_entry)
     {
         PANIC("Could not allocate memory");

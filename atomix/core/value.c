@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <gc.h>
 
+#include "gc.h"
 #include "panic.h"
 #include "api.h"
 #include "symbol.h"
@@ -146,12 +146,12 @@ JSValue value_concat_string(JSValue left, JSValue right)
 
     JSString* l = left.value.as_pointer;
     JSString* r = right.value.as_pointer;
-    char* buff = GC_malloc_atomic(l->length + r->length + 1);
+    char* buff = gc_malloc(l->length + r->length + 1);
     memcpy(buff, l->buff, l->length);
     memcpy(buff + l->length, r->buff, r->length);
     buff[l->length + r->length] = '\0';
     
-    JSString* string = GC_MALLOC(sizeof(JSString));
+    JSString* string = gc_malloc(sizeof(JSString));
     string->buff = buff;
     string->length = l->length + r->length;
 

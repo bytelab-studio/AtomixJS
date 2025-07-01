@@ -6,6 +6,7 @@
 #include "execution.h"
 #include "format.h"
 #include "function.h"
+#include "gc.h"
 #include "instruction.h"
 #include "loader.h"
 #include "number.h"

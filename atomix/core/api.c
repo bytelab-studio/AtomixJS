@@ -2,8 +2,8 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include <gc.h>
 
+#include "gc.h"
 #include "panic.h"
 #include "execution.h"
 
@@ -45,7 +45,7 @@ void bind_modules(VM* vm, Scope* scope) {
 char* init_string(char* str)
 {
     size_t len = strlen(str);
-    char* copy = GC_malloc_atomic(len + 1);
+    char* copy = gc_malloc(len + 1);
     strcpy(copy, str);
     copy[len] = '\0';
     
@@ -55,11 +55,11 @@ char* init_string(char* str)
 JSValue init_string_value(char* str)
 {
     uint32_t len = strlen(str);
-    char* copy = GC_malloc_atomic(len + 1);
+    char* copy = gc_malloc(len + 1);
     strcpy(copy, str);
     copy[len] = '\0';
 
-    JSString* string = GC_malloc(sizeof(JSString));
+    JSString* string = gc_malloc(sizeof(JSString));
     string->length = len;
     string->buff = copy;
 
@@ -70,8 +70,8 @@ NativeModuleList* native_modules = NULL;
 
 void register_native_module(uint64_t hash, JSObject* exports)
 {
-    NativeModuleList* entry = GC_malloc(sizeof(NativeModuleList));
-    JSModule* module = GC_malloc(sizeof(JSModule));
+    NativeModuleList* entry = gc_malloc(sizeof(NativeModuleList));
+    JSModule* module = gc_malloc(sizeof(JSModule));
     memset(module, 0, sizeof(JSModule));
     module->header.hash = hash;
     module->initialized = 1;
