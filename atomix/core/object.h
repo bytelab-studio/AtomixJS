@@ -16,6 +16,10 @@ JSValue object_get_property(VM* vm, JSObject* obj, char* key);
 
 JSValue object_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol);
 
+int object_try_get_property(VM* vm, JSObject* obj, char* key, JSValue* out);
+
+int object_try_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol, JSValue* out);
+
 JSObject* object_get_object_prototype();
 
 JSObject* object_get_array_prototype();

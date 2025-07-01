@@ -15,6 +15,8 @@ void bind_modules(VM* vm, Scope* scope);
 
 char* init_string(char* str);
 
+JSValue init_string_value(char* str);
+
 void register_native_module(uint64_t hash, JSObject* object);
 
 #endif //API_H

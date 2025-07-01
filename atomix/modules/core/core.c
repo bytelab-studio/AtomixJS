@@ -17,55 +17,15 @@ JSValue print(VM* vm, JSValue this, JSValue* args, size_t argc)
         printf("\n");
         return JS_VALUE_UNDEFINED;
     }
+
     for (size_t i = 0; i < argc; i++)
     {
-        JSValue value = args[i];
-        switch (value.type)
+        JSValue value = value_to_string(vm, args[i]);
+        if (value.type != JS_STRING)
         {
-        case JS_INTEGER:
-            printf("%i\n", value.value.as_int);
-            break;
-        case JS_DOUBLE:
-            if (value.value.as_double == JS_POS_INFINITY)
-            {
-                printf("Infinity\n");
-                break;
-            }
-            if (value.value.as_double == JS_NEG_INFINITY)
-            {
-                printf("-Infinity\n");
-                break;
-            }
-            if (value_is_NaN(&value))
-            {
-                printf("NaN\n");
-                break;
-            }
-
-            printf("%f\n", value.value.as_double);
-            break;
-        case JS_STRING:
-            printf("%s\n", (char*)value.value.as_pointer);
-            break;
-        case JS_OBJECT:
-            printf("[Object]\n");
-            break;
-        case JS_FUNC:
-            printf("[Function]\n");
-            break;
-        case JS_UNDEFINED:
-            printf("undefined\n");
-            break;
-        case JS_NULL:
-            printf("null\n");
-            break;
-        case JS_BOOLEAN:
-            printf("%s\n", value.value.as_int ? "true" : "false");
-            break;
-        case JS_SYMBOL:
-            printf("[Symbol]\n");
-            break;
+            PANIC("Cannot print value");
         }
+        printf("%s\n", ((JSString*)value.value.as_pointer)->buff);
     }
 
     return JS_VALUE_UNDEFINED;
@@ -84,12 +44,12 @@ JSValue module_import_module(VM* vm, JSValue this, JSValue* args, size_t argc)
         return JS_VALUE_UNDEFINED;
     }
 
-    if (args[0].type != JS_INTEGER || args[1].type != JS_INTEGER)
+    if (args[0].type != JS_NUMBER || args[1].type != JS_NUMBER)
     {
         // TODO throw exception
         return JS_VALUE_UNDEFINED;
     }
-    uint64_t hash = ((uint64_t)args[0].value.as_int) << 32 | ((uint32_t)args[1].value.as_int);
+    uint64_t hash = ((uint64_t)args[0].value.as_number) << 32 | ((uint32_t)args[1].value.as_number);
     JSModule* module = bundle_get_module(vm->module->bundle, hash);
     if (!module->initialized)
     {
@@ -187,34 +147,29 @@ JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
     if (argc == 1)
     {
         JSValue length = args[0];
-        if (length.type == JS_DOUBLE)
-        {
-            // TODO throw exception
-            return JS_VALUE_UNDEFINED;
-        }
 
-        if (length.type == JS_INTEGER)
+        if (length.type == JS_NUMBER)
         {
-            int size = length.value.as_int;
+            int size = (int)length.value.as_number;
             object_set_property(vm, arr, init_string("length"), length);
             JSValue value;
             for (int i = 0; i < size; i++)
             {
-                value = JS_VALUE_INT(i);
-                char* key = value_to_string(&value);
-                object_set_property(vm, arr, key, JS_VALUE_UNDEFINED);
+                value = JS_VALUE_NUMBER(i);
+                JSValue key = value_to_string(vm, value);
+                object_set_property(vm, arr, ((JSString*)key.value.as_pointer)->buff, JS_VALUE_UNDEFINED);
             }
             return JS_VALUE_OBJECT(arr);
         }
     }
 
-    object_set_property(vm, arr, init_string("length"), JS_VALUE_INT(argc));
+    object_set_property(vm, arr, init_string("length"), JS_VALUE_NUMBER(argc));
     JSValue value;
     for (int i = 0; i < argc; i++)
     {
-        value = JS_VALUE_INT(i);
-        char* key = value_to_string(&value);
-        object_set_property(vm, arr, key, args[i]);
+        value = JS_VALUE_NUMBER(i);
+        JSValue key = value_to_string(vm, value);
+        object_set_property(vm, arr, ((JSString*)key.value.as_pointer)->buff, args[i]);
     }
     return JS_VALUE_OBJECT(arr);
 }
@@ -257,7 +212,7 @@ JSValue symbol(VM* vm, JSValue this, JSValue* args, size_t argc)
 
         if (description.type != JS_STRING)
         {
-            description = JS_VALUE_STRING(value_to_string(&args[0]));
+            description = value_to_string(vm, args[0]);
         }
 
         object_set_property(vm, symbol, init_string("description"), description);

@@ -66,6 +66,28 @@ void object_set_property_with_symbol(VM* vm, JSObject* obj, void* symbol, JSValu
 
 JSValue object_get_property(VM* vm, JSObject* obj, char* key)
 {
+    JSValue* out = NULL;
+    if (!object_try_get_property(vm, obj, key, out))
+    {
+        return JS_VALUE_UNDEFINED;
+    }
+
+    return *out;
+}
+
+JSValue object_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol)
+{
+    JSValue* out = NULL;
+    if (!object_try_get_property_by_symbol(vm, obj, symbol, out))
+    {
+        return JS_VALUE_UNDEFINED;
+    }
+
+    return *out;
+}
+
+int object_try_get_property(VM* vm, JSObject* obj, char* key, JSValue* out)
+{
     JSValue* value = dict_get(obj->properties, key);
     
     if (value)
@@ -79,20 +101,22 @@ JSValue object_get_property(VM* vm, JSObject* obj, char* key)
                 PANIC("Property contains no getter");
             }
 
-            return api_call_function(vm, box->getter, JS_VALUE_OBJECT(obj), NULL, 0);
+            *out = api_call_function(vm, box->getter, JS_VALUE_OBJECT(obj), NULL, 0);
+            return 1;
         }
 
-        return *value;
+        *out = *value;
+        return 1;
     }
     if (obj->prototype && obj->prototype != obj)
     {
-        return object_get_property(vm, obj->prototype, key);
+        return object_try_get_property(vm, obj->prototype, key, out);
     }
 
-    return JS_VALUE_UNDEFINED;
+    return 0;
 }
 
-JSValue object_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol)
+int object_try_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol, JSValue* out)
 {
     JSValue* value = dict_get_by_symbol(obj->properties, symbol);
 
@@ -107,18 +131,20 @@ JSValue object_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol)
                 PANIC("Property contains no getter");
             }
 
-            return api_call_function(vm, box->getter, JS_VALUE_OBJECT(obj), NULL, 0);
+            *out = api_call_function(vm, box->getter, JS_VALUE_OBJECT(obj), NULL, 0);
+            return 1;
         }
 
-        return *value;
+        *out = *value;
+        return 1;
     }
     if (obj->prototype && obj->prototype != obj)
     {
-        return object_get_property_by_symbol(vm, obj->prototype, symbol);
+        return object_try_get_property_by_symbol(vm, obj->prototype, symbol, out);
     }
 
-    return JS_VALUE_UNDEFINED;
-} 
+    return 0;
+}
 
 JSObject* object_prototype = NULL;
 

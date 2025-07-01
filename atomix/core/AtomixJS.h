@@ -8,6 +8,7 @@
 #include "function.h"
 #include "instruction.h"
 #include "loader.h"
+#include "number.h"
 #include "object.h"
 #include "panic.h"
 #include "scope.h"

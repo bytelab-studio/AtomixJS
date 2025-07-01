@@ -1,5 +1,6 @@
 #include "api.impl.h"
 
+#include <inttypes.h>
 #include <string.h>
 #include <gc.h>
 
@@ -47,7 +48,22 @@ char* init_string(char* str)
     char* copy = GC_malloc_atomic(len + 1);
     strcpy(copy, str);
     copy[len] = '\0';
+    
     return copy;
+}
+
+JSValue init_string_value(char* str)
+{
+    uint32_t len = strlen(str);
+    char* copy = GC_malloc_atomic(len + 1);
+    strcpy(copy, str);
+    copy[len] = '\0';
+
+    JSString* string = GC_malloc(sizeof(JSString));
+    string->length = len;
+    string->buff = copy;
+
+    return JS_VALUE_STRING(string);
 }
 
 NativeModuleList* native_modules = NULL;

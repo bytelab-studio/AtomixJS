@@ -8,7 +8,7 @@
 static JSObject* createSymbol(VM* vm, char* description)
 {
     JSObject* symbol = object_create_object(object_get_symbol_prototype());
-    object_set_property(vm, symbol, init_string((char*)"description"), JS_VALUE_STRING(init_string(description)));
+    object_set_property(vm, symbol, init_string((char*)"description"), init_string_value(description));
     return symbol;
 }
 

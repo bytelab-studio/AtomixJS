@@ -133,6 +133,8 @@ static void* load_instruction(const uint8_t* buff, size_t* start_position)
     case OP_NOT:
     case OP_NEGATE:
     case OP_TYPEOF:
+    case OP_EQ:
+    case OP_NEQ:
     case OP_TEQ:
     case OP_NTEQ:
     case OP_GT:

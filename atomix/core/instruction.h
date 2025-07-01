@@ -5,7 +5,7 @@
 
 typedef enum Opcode Opcode;
 
-#define OPCODE_LENGTH 53
+#define OPCODE_LENGTH 55
 
 typedef struct Inst Inst;
 typedef struct InstInt32 InstInt32;

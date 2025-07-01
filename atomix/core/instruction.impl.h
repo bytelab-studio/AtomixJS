@@ -31,6 +31,8 @@ enum Opcode
     OP_NOT,
     OP_NEGATE,
     OP_TYPEOF,
+    OP_EQ,
+    OP_NEQ,
     OP_TEQ,
     OP_NTEQ,
     OP_GT,
