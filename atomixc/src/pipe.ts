@@ -110,6 +110,12 @@ pipe["BinaryExpression"] = (node: nodes.BinaryExpression, ctx: PipeContext) => {
         case ">>>":
             ctx.data.addInstruction(new Instruction(Opcodes.BINARY_ZRSHFT));
             break;
+        case "==":
+            ctx.data.addInstruction(new Instruction(Opcodes.EQ));
+            break;
+        case "!=":
+            ctx.data.addInstruction(new Instruction(Opcodes.NEQ));
+            break;
         case "===":
             ctx.data.addInstruction(new Instruction(Opcodes.TEQ));
             break;

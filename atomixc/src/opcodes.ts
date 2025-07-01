@@ -26,6 +26,8 @@ export enum Opcodes {
     NOT,
     NEGATE,
     TYPEOF,
+    EQ,
+    NEQ,
     TEQ,
     NTEQ,
     GT,
