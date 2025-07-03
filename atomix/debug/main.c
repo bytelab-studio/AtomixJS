@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <gc.h>
 
 #include "AtomixJS.h"
 
@@ -15,7 +14,7 @@ static JSBundle* bundle = &_bundle;
 
 int main(int argc, const char** argv)
 {
-    GC_init();
+    // GC_init();
     if (argc < 2)
     {
         printf("Usage: ./atomix <filename>\n");

@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <gc.h>
 
 #include "AtomixJS.h"
 
