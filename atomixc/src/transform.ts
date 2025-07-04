@@ -21,9 +21,6 @@ function packNodes(_nodes: nodes.Statement[]): nodes.BlockStatement {
 
 function transformPreNode(file: nodes.File, input: string, root: string, prefix: string): void {
     traverse(file, {
-        enter(ctx: NodePath<nodes.Node>): void {
-            console.log("C1:Enter %s", ctx.type);
-        },
         ExpressionStatement(ctx: NodePath<nodes.ExpressionStatement>): void {
             if (ctx.node.expression.type == "StringLiteral" && ctx.node.expression.value == "use strict") {
                 ctx.remove();
@@ -84,9 +81,6 @@ function transformPreNode(file: nodes.File, input: string, root: string, prefix:
 
 function transformPostNode(file: nodes.File, input: string, root: string, prefix: string): void {
     traverse(file, {
-        enter(ctx: NodePath<nodes.Node>): void {
-            console.log("C2:Enter %s", ctx.type);
-        },
         AssignmentExpression(ctx: NodePath<nodes.AssignmentExpression>): void {
             if (ctx.node.operator == "=") {
                 return;
