@@ -1,0 +1,17 @@
+{
+  "name": "test262-runner",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "test262-harness --host-type jsshell --host-path ./suite.js ../test262/test/**/*.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "eshost-cli": "^9.0.0",
+    "test262-harness": "^10.0.0"
+  }
+}
