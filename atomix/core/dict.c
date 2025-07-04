@@ -31,6 +31,9 @@ JSDict* dict_create_dict(size_t bucket_count)
     }
     dict->buckets = gc_malloc(bucket_count * sizeof(JSProperty*));
     dict->bucket_count = bucket_count;
+
+    memset(dict->buckets, 0, bucket_count * sizeof(JSProperty*));
+
     return dict;
 }
 

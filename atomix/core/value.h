@@ -26,7 +26,7 @@ int value_is_array(JSValue* value);
 /**
  * Returns false for `JS_OBJECT` and `JS_FUNC` otherwise true
  */
-inline int value_is_primitive(JSValueType type);
+int value_is_primitive(JSValueType type);
 
 /**
  * [ECMAScript® 2026 Language Specification §7.1.17](https://tc39.es/ecma262/#sec-tostring)

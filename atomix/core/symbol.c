@@ -23,3 +23,15 @@ JSValue symbol_to_primitive(VM* vm)
 
     return JS_VALUE_SYMBOL(_symbol_to_primitive);
 }
+
+static JSObject* _symbol_to_string_tag = NULL;
+
+JSValue symbol_to_string_tag(VM* vm)
+{
+    if (!_symbol_to_string_tag)
+    {
+        _symbol_to_string_tag = createSymbol(vm, (char*)"Symbol.toStringTag");
+    }
+
+    return JS_VALUE_SYMBOL(_symbol_to_string_tag);
+}

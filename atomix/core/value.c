@@ -22,8 +22,9 @@ int value_is_NaN(JSValue value)
     }
 
     uint64_t bits = *((uint64_t*)&value.value.as_number);
-    return (bits & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL &&
-        (bits & 0x7FF0000000000000ULL) != 0;
+    uint64_t exponent = bits & 0x7FF0000000000000ULL;
+    uint64_t mantissa = bits & 0x000FFFFFFFFFFFFFULL;
+    return (exponent == 0x7FF0000000000000ULL) && (mantissa != 0);
 }
 
 JSValue value_to_boolean(JSValue value)
@@ -70,7 +71,7 @@ JSValue value_to_string(VM* vm, JSValue value)
     case JS_BOOLEAN:
         return init_string_value(value.value.as_boolean ? "true" : "false");
     case JS_NUMBER:
-        return init_string_value("TODO");
+        return number_to_string(value, 10);
         // TODO respect BigInt
     default:
         value = value_to_primitive(vm, value, JS_STRING);
@@ -102,7 +103,7 @@ int value_is_array(JSValue* value)
     return 0;
 }
 
-inline int value_is_primitive(JSValueType type)
+int value_is_primitive(JSValueType type)
 {
     return type != JS_OBJECT && type != JS_FUNC;
 }
@@ -126,7 +127,7 @@ JSValue value_to_object(JSValue value)
     case JS_UNDEFINED:
     case JS_NULL:
         // TODO throw TypeError
-        PANIC("Not implemented");
+        PANIC("Cannot box value");
     case JS_BOOLEAN:
         // TODO
         PANIC("Not implemented");
@@ -160,10 +161,12 @@ JSValue value_concat_string(JSValue left, JSValue right)
 
 JSValue value_to_primitive(VM* vm, JSValue input, JSValueType prefered_type)
 {
-    if (input.type != JS_OBJECT)
+    if (value_is_primitive(input.type))
     {
         return input;
     }
+
+    input = value_to_object(input);
 
     JSValue out;
     if (object_try_get_property_by_symbol(vm, input.value.as_pointer, symbol_to_primitive(vm).value.as_pointer, &out))

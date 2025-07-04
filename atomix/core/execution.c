@@ -388,8 +388,6 @@ static void inst_negate(VM* vm, void* ptr)
 
     JSValue right = vm->stats.stack[vm->stats.stack_counter - 1];
 
-    vm->stats.stack_counter--;
-
     right = value_to_numeric(vm, right);
 
     // TODO perform bigint operation
@@ -793,15 +791,10 @@ static void inst_obj_load(VM* vm, void* ptr)
     {
         PANIC("Stack underflow");
     }
-    JSValue obj = vm->stats.stack[vm->stats.stack_counter - 1];
-    if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
-    {
-        PANIC("Target is not a object");
-    }
+    JSValue obj = value_to_object(vm->stats.stack[vm->stats.stack_counter - 1]);
     char* key = string_table_load_str(&vm->module->string_table, inst->operand);
-    JSObject* obj_ptr = obj.type == JS_FUNC
-        ? ((JSFunction*)obj.value.as_pointer)->base
-        : (JSObject*)obj.value.as_pointer;
+    
+    JSObject* obj_ptr = obj.value.as_pointer;
     vm->stats.stack[vm->stats.stack_counter - 1] = object_get_property(vm, obj_ptr, key);
 }
 
@@ -811,15 +804,11 @@ static void inst_obj_cload(VM* vm, void* ptr)
     {
         PANIC("Stack underflow");
     }
+
     JSValue computed = vm->stats.stack[--vm->stats.stack_counter];
-    JSValue obj = vm->stats.stack[vm->stats.stack_counter - 1];
-    if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
-    {
-        PANIC("Target is not a object");
-    }
-    JSObject* obj_ptr = obj.type == JS_FUNC
-        ? ((JSFunction*)obj.value.as_pointer)->base
-        : obj.value.as_pointer;
+    JSValue obj = value_to_object(vm->stats.stack[vm->stats.stack_counter - 1]);
+    
+    JSObject* obj_ptr = obj.value.as_pointer;
     
     if (computed.type == JS_SYMBOL)
     {
@@ -838,15 +827,10 @@ static void inst_obj_cstore(VM* vm, void* ptr)
         PANIC("Stack underflow");
     }
     JSValue computed = vm->stats.stack[--vm->stats.stack_counter];
-    JSValue obj = vm->stats.stack[--vm->stats.stack_counter];
+    JSValue obj = value_to_object(vm->stats.stack[--vm->stats.stack_counter]);
     JSValue value = vm->stats.stack[--vm->stats.stack_counter];
-    if (obj.type != JS_OBJECT && obj.type != JS_FUNC)
-    {
-        PANIC("Target is not a object");
-    }
-    JSObject* obj_ptr = obj.type == JS_FUNC
-        ? ((JSFunction*)obj.value.as_pointer)->base
-        : (JSObject*)obj.value.as_pointer;
+
+    JSObject* obj_ptr = obj.value.as_pointer;
     if (computed.type == JS_SYMBOL)
     {
         object_set_property_with_symbol(vm, obj_ptr, computed.value.as_pointer, value);

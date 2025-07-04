@@ -1,6 +1,11 @@
 #include "number.impl.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+#include <string.h>
+
+#include "api.h"
 
 #include "value.impl.h"
 
@@ -140,7 +145,7 @@ JSValue number_divide(JSValue left, JSValue right)
         return JS_VALUE_NUMBER(-left.value.as_number);
     }
 
-    if (right.value.as_number == 0.0)
+    if (right.value.as_number == JS_POS_INFINITY)
     {
         return JS_VALUE_NUMBER(
             left.value.as_number >= 0.0
@@ -149,7 +154,7 @@ JSValue number_divide(JSValue left, JSValue right)
         );
     }
 
-    if (right.value.as_number == -0.0)
+    if (right.value.as_number == JS_NEG_INFINITY)
     {
         return JS_VALUE_NUMBER(
             left.value.as_number >= 0.0
@@ -318,4 +323,144 @@ JSValue number_bitwise_or(VM* vm, JSValue left, JSValue right)
     int32_t right_value = number_to_int32(vm, right);
 
     return JS_VALUE_NUMBER(left_value | right_value);
+}
+
+static void find_n_k_s(double x, int radix, int* n, int* k, int* s)
+{
+    double logx = log(x) / log((double)radix);
+    *n = (int)floor(logx) + 1;
+
+    int max_digits = 20;
+    for (int digits = 1; digits <= max_digits; digits++)
+    {
+        double power = pow((double)radix, digits - (*n));
+        double scaled = x * power;
+
+        double scaled_int = round(scaled);
+    
+        if (fabs(scaled - scaled_int) < 1e-12)
+        {
+            double lower_bound = pow((double)radix, digits - 1);
+            double upper_bound = pow((double)radix, digits);
+        
+            if (scaled_int >= lower_bound && scaled_int < upper_bound)
+            {
+                *k = digits;
+                *s = (int)scaled_int;
+                return;
+            }
+        }
+    }
+
+    // Fallback: if no exact integer found, just use rounded value with max digits
+    double power = pow((double)radix, max_digits - (*n));
+    double scaled = x * power;
+    double scaled_int = round(scaled);
+    *k = max_digits;
+    *s = (int)scaled_int;
+}
+
+static void to_radix_string(int number, int radix, int min_digits, char* output)
+{
+    char temp[64];
+    int index = 0;
+
+    do {
+        int digit = number % radix;
+        temp[index++] = "0123456789abcdefghijklmnopqrstuvwxyz"[digit];
+        number /= radix;
+    }
+    while(number > 0);
+
+    while (index < min_digits)
+    {
+        temp[index++] = '0';
+    }
+
+    for (int i = 0; i < index; i++)
+    {
+        output[i] = temp[index - i - 1];
+    }
+
+    output[index] = '\0';
+}
+
+JSValue number_to_string(JSValue input, int radix)
+{
+    if (value_is_NaN(input))
+    {
+        return init_string_value("NaN");
+    }
+
+    if (input.value.as_number == 0.0 || input.value.as_number == -0.0)
+    {
+        return init_string_value("0");
+    }
+
+    if (input.value.as_number < 0)
+    {
+        input.value.as_number = -input.value.as_number;
+        input = number_to_string(input, radix);
+        return value_concat_string(init_string_value("-"), input);
+    }
+
+    if (input.value.as_number == JS_POS_INFINITY)
+    {
+        return init_string_value("Infinity");
+    }
+
+    static char buffer[128];
+    char temp[64];
+    int i, len, n, k, s;
+    find_n_k_s(input.value.as_number, radix, &n, &k, &s);
+
+    if (radix != 10 || (n >= -5 && n <= 21))
+    {
+        to_radix_string(s, radix, k, temp);
+    
+        if (n >= k)
+        {
+            strcpy(buffer, temp);
+            for (i = 0; i < n - k; i++)
+            {
+                strcat(buffer, "0");
+            }
+            return init_string_value(buffer);
+        }
+        if (n > 0)
+        {
+            strncpy(buffer, temp, n);
+            buffer[n] = '\0';
+            strcat(buffer, ".");
+            strcat(buffer, temp + n);
+            return init_string_value(buffer);
+        }
+
+        strcpy(buffer, "0.");
+        for (i = 0; i < -n; i++)
+        {
+            strcat(buffer, "0");
+        }
+        strcat(buffer, temp);
+        return init_string_value(buffer);
+    }
+
+    char exponent_sign = n < 0 
+        ? '-' 
+        : '+';
+
+    if (k == 1)
+    {
+        to_radix_string(s, radix, k, temp);
+        snprintf(buffer, sizeof(buffer), "%se%c%d", temp, exponent_sign, abs(n - 1));
+        return init_string_value(buffer);
+    }
+
+    to_radix_string(s, radix, k, temp);
+    buffer[0] = temp[0];
+    buffer[1] = '.';
+    strcpy(buffer + 2, temp + 1);
+    len = strlen(buffer);
+    snprintf(buffer + len, sizeof(buffer) - len, "e%c%d", exponent_sign, abs(n - 1));
+    return init_string_value(buffer);
 }

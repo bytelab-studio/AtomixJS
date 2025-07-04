@@ -66,24 +66,24 @@ void object_set_property_with_symbol(VM* vm, JSObject* obj, void* symbol, JSValu
 
 JSValue object_get_property(VM* vm, JSObject* obj, char* key)
 {
-    JSValue* out = NULL;
-    if (!object_try_get_property(vm, obj, key, out))
+    JSValue out;
+    if (!object_try_get_property(vm, obj, key, &out))
     {
         return JS_VALUE_UNDEFINED;
     }
 
-    return *out;
+    return out;
 }
 
 JSValue object_get_property_by_symbol(VM* vm, JSObject* obj, void* symbol)
 {
-    JSValue* out = NULL;
-    if (!object_try_get_property_by_symbol(vm, obj, symbol, out))
+    JSValue out;
+    if (!object_try_get_property_by_symbol(vm, obj, symbol, &out))
     {
         return JS_VALUE_UNDEFINED;
     }
 
-    return *out;
+    return out;
 }
 
 int object_try_get_property(VM* vm, JSObject* obj, char* key, JSValue* out)

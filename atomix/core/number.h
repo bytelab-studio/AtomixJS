@@ -91,4 +91,9 @@ JSValue number_bitwise_xor(VM* vm, JSValue left, JSValue right);
  */
 JSValue number_bitwise_or(VM* vm, JSValue left, JSValue right);
 
+/**
+ * [ECMAScript® 2026 Language Specification §6.1.6.1.19](https://tc39.es/ecma262/#sec-numeric-types-number-bitwiseOR) includes [§6.1.6.1.16](https://tc39.es/ecma262/#sec-numberbitwiseop)
+ */
+JSValue number_to_string(JSValue input, int radix);
+
 #endif //NUMBER_H

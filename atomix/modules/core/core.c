@@ -140,6 +140,33 @@ JSValue setPrototypeOf(VM* vm, JSValue this, JSValue* args, size_t argc)
     return JS_VALUE_UNDEFINED;
 }
 
+/**
+ * [ECMAScript® 2026 Language Specification §20.1.3.6](https://tc39.es/ecma262/#sec-object.prototype.tostring)
+ */
+JSValue to_string(VM* vm, JSValue this, JSValue* args, size_t argc)
+{
+    if (this.type == JS_UNDEFINED)
+    {
+        return init_string_value("[object Undefined]");
+    }
+    if (this.type == JS_NULL)
+    {
+        return init_string_value("[object Null]");
+    }
+
+    JSObject* obj = value_to_object(this).value.as_pointer;
+    JSValue tag = object_get_property_by_symbol(vm, obj, symbol_to_string_tag(vm).value.as_pointer);
+    if (!value_is_primitive(tag.type))
+    {
+        PANIC("Symbol.toStringTag returns a non-primtive value");
+    }
+    tag = value_to_string(vm, tag);
+    tag = value_concat_string(init_string_value("[object "), tag);
+    tag = value_concat_string(tag, init_string_value("]"));
+    
+    return tag;
+}
+
 JSValue array(VM* vm, JSValue this, JSValue* args, size_t argc)
 {
     JSObject* arr = object_create_object(object_get_array_prototype());
@@ -240,7 +267,7 @@ void core_init(VM* vm, Scope* scope)
 
     // Object
     JSFunction* _object = function_create_native_function(object);
-
+    
     JSFunction* _instantiate = function_create_native_function(instantiate);
     object_set_property(vm, _object->base, init_string("instantiate"), JS_VALUE_FUNCTION(_instantiate));
 
@@ -249,6 +276,9 @@ void core_init(VM* vm, Scope* scope)
 
     JSFunction* _setPrototypeOf = function_create_native_function(setPrototypeOf);
     object_set_property(vm, _object->base, init_string("setPrototypeOf"), JS_VALUE_FUNCTION(_setPrototypeOf));
+
+    JSFunction* _to_string = function_create_native_function(to_string);
+    object_set_property(vm, _object->base->prototype, init_string("toString"), JS_VALUE_FUNCTION(_to_string));
 
     scope_declare(scope, init_string("Object"), JS_VALUE_FUNCTION(_object));
 
